@@ -24,15 +24,6 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Provider</label>
-                            <select class="form-select" name="provider" required>
-                                <option value="">Select Provider</option>
-                                {% for provider in providers %}
-                                <option value="{{ provider.id }}">{{ provider.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Rate</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>

@@ -1238,21 +1238,13 @@ def add_service(request):
         try:
             data = request.POST
             
-            # Validate required fields
-            required_fields = ['name', 'category', 'rate', 'min_order', 'max_order']
-            for field in required_fields:
-                if not data.get(field):
-                    return JsonResponse({
-                        'error': f'{field.replace("_", " ").title()} is required'
-                    }, status=400)
-            
             # Get or create category
             category, _ = ServiceCategory.objects.get_or_create(
                 name=data.get('category'),
                 defaults={'is_active': True}
             )
             
-            # Get the first active provider (or modify this to get a specific provider)
+            # Get the first active provider
             provider = Provider.objects.filter(is_active=True).first()
             if not provider:
                 return JsonResponse({
@@ -1266,12 +1258,12 @@ def add_service(request):
             service = Service.objects.create(
                 service_id=service_id,
                 name=data.get('name'),
-                provider=provider,  # Use the provider we got above
+                provider=provider,
                 category=category,
                 rate=Decimal(data.get('rate')),
                 min_order=int(data.get('min_order')),
                 max_order=int(data.get('max_order')),
-                description=data.get('description'),
+                description=data.get('description', ''),
                 status='active' if data.get('is_active') == 'on' else 'inactive',
                 is_drip_feed=data.get('is_drip_feed') == 'on'
             )
@@ -1283,11 +1275,12 @@ def add_service(request):
             })
             
         except ValueError as e:
+            print(f"Value Error: {str(e)}")  # Add debugging
             return JsonResponse({
                 'error': 'Invalid numeric value provided'
             }, status=400)
         except Exception as e:
-            print(f"Error creating service: {str(e)}")  # Add this for debugging
+            print(f"Error creating service: {str(e)}")  # Add debugging
             return JsonResponse({
                 'error': str(e)
             }, status=400)
