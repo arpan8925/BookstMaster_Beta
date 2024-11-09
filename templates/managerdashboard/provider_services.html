@@ -93,6 +93,9 @@
     </div>
 </div>
 
-<!-- Service handlers JavaScript -->
+<!-- Add this after your existing scripts -->
+<script>
+    const currentProviderId = {{ provider.id }};
+</script>
 <script src="{% static 'js/service_handlers.js' %}"></script>
 {% endblock %} 

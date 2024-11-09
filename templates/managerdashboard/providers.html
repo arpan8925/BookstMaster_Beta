@@ -85,7 +85,7 @@
                     </thead>
                     <tbody>
                         {% for provider in providers %}
-                        <tr>
+                        <tr data-provider-id="{{ provider.id }}">
                             <td>
                                 <input type="checkbox" class="form-check-input provider-select" value="{{ provider.id }}">
                             </td>
@@ -93,7 +93,7 @@
                             <td>
                                 <a href="#" class="text-decoration-none">{{ provider.name }}</a>
                             </td>
-                            <td>${{ provider.balance|default:"0.00" }}</td>
+                            <td class="balance">${{ provider.balance|default:"0.00" }}</td>
                             <td>{{ provider.description|default:"-" }}</td>
                             <td>
                                 <div class="form-check form-switch">
@@ -107,7 +107,7 @@
                                     <button class="btn btn-sm btn-outline-primary" onclick="editProvider({{ provider.id }})">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-success" onclick="addProviderFunds({{ provider.id }})">
+                                    <button class="btn btn-sm btn-outline-success" onclick="checkBalance({{ provider.id }})">
                                         <i class="bi bi-currency-dollar"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-info" onclick="syncProvider({{ provider.id }})">

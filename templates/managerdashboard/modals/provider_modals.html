@@ -87,7 +87,49 @@
 
 <!-- Edit Provider Modal -->
 <div class="modal fade" id="editProviderModal" tabindex="-1">
-    <!-- Similar to Add Provider Modal but with pre-filled values -->
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Provider</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editProviderForm" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="provider_id" id="edit_provider_id">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Provider Name</label>
+                            <input type="text" class="form-control" name="name" id="edit_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">API URL</label>
+                            <input type="url" class="form-control" name="api_url" id="edit_api_url" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">API Key</label>
+                            <input type="text" class="form-control" name="api_key" id="edit_api_key" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" id="edit_description" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active">
+                                <label class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Add Funds Modal -->

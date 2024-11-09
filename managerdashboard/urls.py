@@ -72,6 +72,10 @@ urlpatterns = [
 
     path('providers/<int:provider_id>/delete/', views.delete_provider, name='delete_provider'),
 
+    path('providers/<int:provider_id>/edit/', views.edit_provider, name='edit_provider'),
+
+    path('providers/import-services/', views.import_services, name='import_services'),
+
 ]
 
 

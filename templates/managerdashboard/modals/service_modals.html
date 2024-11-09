@@ -1,0 +1,131 @@
+<!-- Add Service Modal -->
+<div class="modal fade" id="addServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addServiceForm">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Service Name</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Provider</label>
+                            <select class="form-select" name="provider_id" required>
+                                <option value="">Select Provider</option>
+                                {% for provider in providers %}
+                                <option value="{{ provider.id }}">{{ provider.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category" required>
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Rate</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" name="rate" step="0.0001" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Min Order</label>
+                            <input type="number" class="form-control" name="min" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Max Order</label>
+                            <input type="number" class="form-control" name="max" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" checked>
+                                <label class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Import Services Modal -->
+<div class="modal fade" id="importServicesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Services</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="importServicesForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Provider</label>
+                        <select class="form-select" name="provider_id" required>
+                            <option value="">Select Provider</option>
+                            {% for provider in providers %}
+                            <option value="{{ provider.id }}">{{ provider.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Import Services</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Service Modal -->
+<div class="modal fade" id="viewServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> <span id="view_name"></span></p>
+                        <p><strong>Provider:</strong> <span id="view_provider"></span></p>
+                        <p><strong>Category:</strong> <span id="view_category"></span></p>
+                        <p><strong>Rate:</strong> $<span id="view_rate"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Min Order:</strong> <span id="view_min"></span></p>
+                        <p><strong>Max Order:</strong> <span id="view_max"></span></p>
+                        <p><strong>Status:</strong> <span id="view_status"></span></p>
+                    </div>
+                    <div class="col-md-12">
+                        <p><strong>Description:</strong></p>
+                        <p id="view_description"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div> 

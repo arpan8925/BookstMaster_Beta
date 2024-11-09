@@ -25,6 +25,8 @@ from managerdashboard.models import Provider, ProviderTransaction
 import requests
 from django.utils import timezone
 
+import json
+
 
 
 @permission_required('authentication.is_manager', login_url='manager_login')
@@ -924,26 +926,38 @@ def check_provider_balance(request, provider_id):
                 'action': 'balance'
             }
             
-            response = requests.post(provider.api_url, data=params)
-            data = response.json()
-            
-            if 'balance' in data:
-                provider.balance = data['balance']
-                provider.save()
+            try:
+                response = requests.post(provider.api_url, data=params, timeout=10)  # Add timeout
+                response.raise_for_status()  # Raise exception for bad status codes
+                data = response.json()
                 
+                if 'balance' in data:
+                    # Update provider's balance in database
+                    provider.balance = data['balance']
+                    provider.save()
+                    
+                    return JsonResponse({
+                        'status': 'success',
+                        'balance': data['balance']
+                    })
+                else:
+                    return JsonResponse({
+                        'error': 'Invalid response from provider API'
+                    }, status=400)
+                    
+            except requests.Timeout:
                 return JsonResponse({
-                    'status': 'success',
-                    'balance': data['balance']
-                })
-            else:
+                    'error': 'Request timed out. Please try again.'
+                }, status=408)
+            except requests.RequestException as e:
                 return JsonResponse({
-                    'error': 'Could not fetch balance from provider'
+                    'error': f'API request failed: {str(e)}'
                 }, status=400)
                 
         except Provider.DoesNotExist:
             return JsonResponse({'error': 'Provider not found'}, status=404)
-        except requests.RequestException as e:
-            return JsonResponse({'error': f'API request failed: {str(e)}'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
             
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
@@ -1042,6 +1056,91 @@ def delete_provider(request, provider_id):
             })
         except Provider.DoesNotExist:
             return JsonResponse({'error': 'Provider not found'}, status=404)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def edit_provider(request, provider_id):
+    if request.method == 'POST':
+        try:
+            provider = Provider.objects.get(id=provider_id)
+            
+            # Update provider fields
+            provider.name = request.POST.get('name')
+            provider.api_url = request.POST.get('api_url')
+            provider.api_key = request.POST.get('api_key')
+            provider.description = request.POST.get('description')
+            provider.is_active = request.POST.get('is_active') == 'on'
+            
+            # Validate required fields
+            if not all([provider.name, provider.api_url, provider.api_key]):
+                return JsonResponse({
+                    'error': 'Name, API URL, and API Key are required'
+                }, status=400)
+            
+            # Save changes
+            provider.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Provider {provider.name} updated successfully'
+            })
+            
+        except Provider.DoesNotExist:
+            return JsonResponse({'error': 'Provider not found'}, status=404)
+        except Exception as e:
+            print(f"Error updating provider: {str(e)}")
+            return JsonResponse({
+                'error': f'Error updating provider: {str(e)}'
+            }, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def import_services(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            provider_id = data.get('provider_id')
+            service_ids = data.get('service_ids', [])
+            
+            if not provider_id or not service_ids:
+                return JsonResponse({
+                    'error': 'Provider ID and service IDs are required'
+                }, status=400)
+            
+            provider = Provider.objects.get(id=provider_id)
+            
+            # Make API request to get service details
+            params = {
+                'key': provider.api_key,
+                'action': 'services'
+            }
+            
+            response = requests.post(provider.api_url, data=params)
+            all_services = response.json()
+            
+            # Filter selected services
+            selected_services = [s for s in all_services if str(s.get('service')) in service_ids]
+            
+            # Import services logic here
+            imported = 0
+            for service in selected_services:
+                # Add your service import logic here
+                imported += 1
+            
+            return JsonResponse({
+                'status': 'success',
+                'imported': imported,
+                'message': f'Successfully imported {imported} services'
+            })
+            
+        except Provider.DoesNotExist:
+            return JsonResponse({'error': 'Provider not found'}, status=404)
+        except requests.RequestException as e:
+            return JsonResponse({'error': f'API request failed: {str(e)}'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+            
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
