@@ -18,9 +18,14 @@ from django.core.mail import send_mail as django_send_mail
 from django.conf import settings
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
-from .models import Transaction
-
-from managerdashboard.models import Provider, ProviderTransaction
+from .models import (
+    Transaction, 
+    Provider, 
+    ProviderTransaction,
+    Service,
+    ServiceCategory,
+    ServiceUpdate
+)
 
 import requests
 from django.utils import timezone
@@ -81,9 +86,93 @@ def orders(request):
 
 def services(request):
 
+    # Get search query and filters
+
+    search_query = request.GET.get('search', '')
+
+    category_filter = request.GET.get('category', '')
+
+    provider_filter = request.GET.get('provider', '')
+
+    status_filter = request.GET.get('status', '')
+
+    
+
+    # Base queryset
+
+    services = Service.objects.select_related('provider')
+
+    
+
+    # Apply filters
+
+    if search_query:
+
+        services = services.filter(
+
+            Q(name__icontains=search_query) |
+
+            Q(service_id__icontains=search_query) |
+
+            Q(provider__name__icontains=search_query)
+
+        )
+
+    
+
+    if category_filter:
+
+        services = services.filter(category=category_filter)
+
+    
+
+    if provider_filter:
+
+        services = services.filter(provider_id=provider_filter)
+
+    
+
+    if status_filter:
+
+        services = services.filter(status=status_filter)
+
+    
+
+    # Get unique categories and providers for filters
+
+    categories = ServiceCategory.objects.filter(is_active=True)
+
+    providers = Provider.objects.filter(is_active=True)
+
+    
+
+    # Pagination
+
+    paginator = Paginator(services, 25)  # Show 25 services per page
+
+    page_number = request.GET.get('page')
+
+    services_page = paginator.get_page(page_number)
+
+    
+
     context = {
 
         'active_tab': 'services',
+
+        'services': services_page,
+
+        'categories': categories,
+
+        'providers': providers,
+
+        'search_query': search_query,
+
+        'category_filter': category_filter,
+
+        'provider_filter': provider_filter,
+
+        'status_filter': status_filter
 
     }
 
@@ -1138,6 +1227,274 @@ def import_services(request):
             return JsonResponse({'error': 'Provider not found'}, status=404)
         except requests.RequestException as e:
             return JsonResponse({'error': f'API request failed: {str(e)}'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def add_service(request):
+    if request.method == 'POST':
+        try:
+            data = request.POST
+            
+            # Create service
+            service = Service.objects.create(
+                service_id=data.get('service_id'),
+                name=data.get('name'),
+                provider_id=data.get('provider_id'),
+                category=data.get('category'),
+                rate=data.get('rate'),
+                min_order=data.get('min_order'),
+                max_order=data.get('max_order'),
+                description=data.get('description'),
+                status='active' if data.get('is_active') == 'on' else 'inactive',
+                is_drip_feed=data.get('is_drip_feed') == 'on'
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Service created successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e)
+            }, status=400)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def edit_service(request, service_id):
+    if request.method == 'POST':
+        try:
+            service = Service.objects.get(id=service_id)
+            data = request.POST
+            
+            # Create update record
+            ServiceUpdate.objects.create(
+                service=service,
+                old_rate=service.rate,
+                new_rate=data.get('rate'),
+                old_min=service.min_order,
+                new_min=data.get('min_order'),
+                old_max=service.max_order,
+                new_max=data.get('max_order'),
+                old_status=service.status,
+                new_status='active' if data.get('is_active') == 'on' else 'inactive',
+                updated_by=request.user
+            )
+            
+            # Update service
+            service.name = data.get('name')
+            service.category = data.get('category')
+            service.rate = data.get('rate')
+            service.min_order = data.get('min_order')
+            service.max_order = data.get('max_order')
+            service.description = data.get('description')
+            service.status = 'active' if data.get('is_active') == 'on' else 'inactive'
+            service.is_drip_feed = data.get('is_drip_feed') == 'on'
+            service.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Service updated successfully'
+            })
+            
+        except Service.DoesNotExist:
+            return JsonResponse({'error': 'Service not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def toggle_service_status(request, service_id):
+    if request.method == 'POST':
+        try:
+            service = Service.objects.get(id=service_id)
+            service.status = 'inactive' if service.status == 'active' else 'active'
+            service.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'is_active': service.status == 'active'
+            })
+        except Service.DoesNotExist:
+            return JsonResponse({'error': 'Service not found'}, status=404)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def delete_service(request, service_id):
+    if request.method == 'POST':
+        try:
+            service = Service.objects.get(id=service_id)
+            service.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Service deleted successfully'
+            })
+        except Service.DoesNotExist:
+            return JsonResponse({'error': 'Service not found'}, status=404)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def categories(request):
+    # Get search query and filters
+    search_query = request.GET.get('search', '')
+    status_filter = request.GET.get('status', '')
+    
+    # Base queryset
+    categories = ServiceCategory.objects.all()
+    
+    # Apply filters
+    if search_query:
+        categories = categories.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
+    if status_filter == 'active':
+        categories = categories.filter(is_active=True)
+    elif status_filter == 'inactive':
+        categories = categories.filter(is_active=False)
+    
+    # Add service count to each category using the correct related name
+    categories = categories.annotate(service_count=Count('services'))
+    
+    context = {
+        'active_tab': 'categories',
+        'categories': categories,
+        'search_query': search_query,
+        'status_filter': status_filter
+    }
+    return render(request, 'managerdashboard/categories.html', context)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def add_category(request):
+    if request.method == 'POST':
+        try:
+            name = request.POST.get('name')
+            description = request.POST.get('description')
+            order = request.POST.get('order', 0)
+            is_active = request.POST.get('is_active') == 'on'
+            
+            # Validate name is unique
+            if ServiceCategory.objects.filter(name=name).exists():
+                return JsonResponse({
+                    'error': 'Category with this name already exists'
+                }, status=400)
+            
+            # Create category
+            category = ServiceCategory.objects.create(
+                name=name,
+                description=description,
+                order=order,
+                is_active=is_active
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Category {name} created successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e)
+            }, status=400)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def edit_category(request, category_id):
+    if request.method == 'POST':
+        try:
+            category = ServiceCategory.objects.get(id=category_id)
+            
+            # Check if new name conflicts with existing category
+            new_name = request.POST.get('name')
+            if new_name != category.name and ServiceCategory.objects.filter(name=new_name).exists():
+                return JsonResponse({
+                    'error': 'Category with this name already exists'
+                }, status=400)
+            
+            # Update category
+            category.name = new_name
+            category.description = request.POST.get('description')
+            category.order = request.POST.get('order', category.order)
+            category.is_active = request.POST.get('is_active') == 'on'
+            category.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Category {category.name} updated successfully'
+            })
+            
+        except ServiceCategory.DoesNotExist:
+            return JsonResponse({'error': 'Category not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def toggle_category_status(request, category_id):
+    if request.method == 'POST':
+        try:
+            category = ServiceCategory.objects.get(id=category_id)
+            category.is_active = not category.is_active
+            category.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'is_active': category.is_active
+            })
+        except ServiceCategory.DoesNotExist:
+            return JsonResponse({'error': 'Category not found'}, status=404)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def delete_category(request, category_id):
+    if request.method == 'POST':
+        try:
+            category = ServiceCategory.objects.get(id=category_id)
+            
+            # Check if category has services
+            if Service.objects.filter(category=category.name).exists():
+                return JsonResponse({
+                    'error': 'Cannot delete category with existing services'
+                }, status=400)
+            
+            category.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Category deleted successfully'
+            })
+        except ServiceCategory.DoesNotExist:
+            return JsonResponse({'error': 'Category not found'}, status=404)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def reorder_categories(request):
+    if request.method == 'POST':
+        try:
+            order_data = json.loads(request.body)
+            
+            with transaction.atomic():
+                for item in order_data:
+                    category = ServiceCategory.objects.get(id=item['id'])
+                    category.order = item['order']
+                    category.save()
+                    
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Categories reordered successfully'
+            })
+            
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
             

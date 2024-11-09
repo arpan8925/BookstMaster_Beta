@@ -1,0 +1,107 @@
+{% extends 'managerdashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Categories Management</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+            <i class="bi bi-plus"></i> Add Category
+        </button>
+    </div>
+
+    <!-- Messages Section -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="categorySearch" 
+                               placeholder="Search categories...">
+                        <button class="btn btn-primary" onclick="searchCategories()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="statusFilter" onchange="filterCategories()">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Services</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sortableCategories">
+                        {% for category in categories %}
+                        <tr data-category-id="{{ category.id }}">
+                            <td>
+                                <i class="bi bi-grip-vertical handle" style="cursor: move;"></i>
+                                {{ category.order }}
+                            </td>
+                            <td>{{ category.name }}</td>
+                            <td>{{ category.description|default:"-" }}</td>
+                            <td>{{ category.service_count }}</td>
+                            <td>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" 
+                                           {% if category.is_active %}checked{% endif %}
+                                           onchange="toggleCategoryStatus({{ category.id }})">
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editCategory({{ category.id }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Modals -->
+{% include 'managerdashboard/modals/category_modals.html' %}
+
+<!-- Include Sortable.js for drag-and-drop ordering -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="{% static 'js/category_handlers.js' %}"></script>
+{% endblock %} 

@@ -48,3 +48,63 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.type} - ${self.amount} - {self.user.username}"
+
+class ServiceCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name_plural = 'Service Categories'
+
+    def __str__(self):
+        return self.name
+
+class Service(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('deactive', 'Deactive')
+    ]
+
+    service_id = models.CharField(max_length=50, unique=True)  # Original ID from provider
+    name = models.CharField(max_length=255)
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name='services')
+    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services')
+    rate = models.DecimalField(max_digits=10, decimal_places=4)
+    min_order = models.IntegerField()
+    max_order = models.IntegerField()
+    description = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    is_drip_feed = models.BooleanField(default=False)
+    drip_feed_rules = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['category', 'name']
+        unique_together = ['provider', 'service_id']
+
+    def __str__(self):
+        return f"{self.name} ({self.provider.name})"
+
+class ServiceUpdate(models.Model):
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='updates')
+    old_rate = models.DecimalField(max_digits=10, decimal_places=4)
+    new_rate = models.DecimalField(max_digits=10, decimal_places=4)
+    old_min = models.IntegerField()
+    new_min = models.IntegerField()
+    old_max = models.IntegerField()
+    new_max = models.IntegerField()
+    old_status = models.CharField(max_length=20)
+    new_status = models.CharField(max_length=20)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Update for {self.service.name} at {self.created_at}"

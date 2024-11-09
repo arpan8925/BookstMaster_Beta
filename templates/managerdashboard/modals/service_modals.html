@@ -9,25 +9,16 @@
             <form id="addServiceForm">
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <label class="form-label">Service Name</label>
                             <input type="text" class="form-control" name="name" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Provider</label>
-                            <select class="form-select" name="provider_id" required>
-                                <option value="">Select Provider</option>
-                                {% for provider in providers %}
-                                <option value="{{ provider.id }}">{{ provider.name }}</option>
-                                {% endfor %}
-                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Category</label>
                             <select class="form-select" name="category" required>
                                 <option value="">Select Category</option>
                                 {% for category in categories %}
-                                <option value="{{ category }}">{{ category }}</option>
+                                <option value="{{ category.name }}">{{ category.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -40,20 +31,26 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Min Order</label>
-                            <input type="number" class="form-control" name="min" required>
+                            <input type="number" class="form-control" name="min_order" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Max Order</label>
-                            <input type="number" class="form-control" name="max" required>
+                            <input type="number" class="form-control" name="max_order" required>
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">Description</label>
                             <textarea class="form-control" name="description" rows="3"></textarea>
                         </div>
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="is_active" checked>
                                 <label class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_drip_feed">
+                                <label class="form-check-label">Enable Drip Feed</label>
                             </div>
                         </div>
                     </div>
@@ -108,7 +105,6 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Name:</strong> <span id="view_name"></span></p>
-                        <p><strong>Provider:</strong> <span id="view_provider"></span></p>
                         <p><strong>Category:</strong> <span id="view_category"></span></p>
                         <p><strong>Rate:</strong> $<span id="view_rate"></span></p>
                     </div>
@@ -126,6 +122,73 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Service Modal -->
+<div class="modal fade" id="editServiceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editServiceForm">
+                <input type="hidden" name="service_id" id="edit_service_id">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Service Name</label>
+                            <input type="text" class="form-control" name="name" id="edit_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category" id="edit_category" required>
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                <option value="{{ category.name }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Rate</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" name="rate" id="edit_rate" step="0.0001" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Min Order</label>
+                            <input type="number" class="form-control" name="min_order" id="edit_min_order" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Max Order</label>
+                            <input type="number" class="form-control" name="max_order" id="edit_max_order" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" id="edit_description" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active">
+                                <label class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_drip_feed" id="edit_is_drip_feed">
+                                <label class="form-check-label">Enable Drip Feed</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div> 

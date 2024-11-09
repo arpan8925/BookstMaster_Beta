@@ -76,6 +76,26 @@ urlpatterns = [
 
     path('providers/import-services/', views.import_services, name='import_services'),
 
+    path('services/add/', views.add_service, name='add_service'),
+
+    path('services/<int:service_id>/edit/', views.edit_service, name='edit_service'),
+
+    path('services/<int:service_id>/toggle-status/', views.toggle_service_status, name='toggle_service_status'),
+
+    path('services/<int:service_id>/delete/', views.delete_service, name='delete_service'),
+
+    path('categories/', views.categories, name='categories'),
+
+    path('categories/add/', views.add_category, name='add_category'),
+
+    path('categories/<int:category_id>/edit/', views.edit_category, name='edit_category'),
+
+    path('categories/<int:category_id>/toggle-status/', views.toggle_category_status, name='toggle_category_status'),
+
+    path('categories/<int:category_id>/delete/', views.delete_category, name='delete_category'),
+
+    path('categories/reorder/', views.reorder_categories, name='reorder_categories'),
+
 ]
 
 
