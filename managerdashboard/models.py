@@ -52,11 +52,10 @@ class Transaction(models.Model):
 class ServiceCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
-    order = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ['order', 'name']
+        ordering = ['name']
         verbose_name_plural = 'Service Categories'
 
     def __str__(self):
@@ -69,10 +68,10 @@ class Service(models.Model):
         ('deactive', 'Deactive')
     ]
 
-    service_id = models.CharField(max_length=50, unique=True)  # Original ID from provider
+    service_id = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=255)
     provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name='services')
-    category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services')
+    category = models.ForeignKey(ServiceCategory, on_delete=models.PROTECT, related_name='services')
     rate = models.DecimalField(max_digits=10, decimal_places=4)
     min_order = models.IntegerField()
     max_order = models.IntegerField()

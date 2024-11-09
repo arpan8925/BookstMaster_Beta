@@ -96,6 +96,8 @@ urlpatterns = [
 
     path('categories/reorder/', views.reorder_categories, name='reorder_categories'),
 
+    path('categories/get-info/<int:category_id>/', views.get_category_info, name='get_category_info'),
+
 ]
 
 

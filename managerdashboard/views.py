@@ -100,7 +100,7 @@ def services(request):
 
     # Base queryset
 
-    services = Service.objects.select_related('provider')
+    services = Service.objects.select_related('provider', 'category')
 
     
 
@@ -122,7 +122,7 @@ def services(request):
 
     if category_filter:
 
-        services = services.filter(category=category_filter)
+        services = services.filter(category__name=category_filter)
 
     
 
@@ -1238,15 +1238,39 @@ def add_service(request):
         try:
             data = request.POST
             
+            # Validate required fields
+            required_fields = ['name', 'category', 'rate', 'min_order', 'max_order']
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({
+                        'error': f'{field.replace("_", " ").title()} is required'
+                    }, status=400)
+            
+            # Get or create category
+            category, _ = ServiceCategory.objects.get_or_create(
+                name=data.get('category'),
+                defaults={'is_active': True}
+            )
+            
+            # Get the first active provider (or modify this to get a specific provider)
+            provider = Provider.objects.filter(is_active=True).first()
+            if not provider:
+                return JsonResponse({
+                    'error': 'No active provider available'
+                }, status=400)
+            
+            # Generate a unique service ID
+            service_id = f'SRV{int(timezone.now().timestamp())}'
+            
             # Create service
             service = Service.objects.create(
-                service_id=data.get('service_id'),
+                service_id=service_id,
                 name=data.get('name'),
-                provider_id=data.get('provider_id'),
-                category=data.get('category'),
-                rate=data.get('rate'),
-                min_order=data.get('min_order'),
-                max_order=data.get('max_order'),
+                provider=provider,  # Use the provider we got above
+                category=category,
+                rate=Decimal(data.get('rate')),
+                min_order=int(data.get('min_order')),
+                max_order=int(data.get('max_order')),
                 description=data.get('description'),
                 status='active' if data.get('is_active') == 'on' else 'inactive',
                 is_drip_feed=data.get('is_drip_feed') == 'on'
@@ -1254,10 +1278,16 @@ def add_service(request):
             
             return JsonResponse({
                 'status': 'success',
-                'message': 'Service created successfully'
+                'message': 'Service created successfully',
+                'service_id': service.id
             })
             
+        except ValueError as e:
+            return JsonResponse({
+                'error': 'Invalid numeric value provided'
+            }, status=400)
         except Exception as e:
+            print(f"Error creating service: {str(e)}")  # Add this for debugging
             return JsonResponse({
                 'error': str(e)
             }, status=400)
@@ -1378,7 +1408,6 @@ def add_category(request):
         try:
             name = request.POST.get('name')
             description = request.POST.get('description')
-            order = request.POST.get('order', 0)
             is_active = request.POST.get('is_active') == 'on'
             
             # Validate name is unique
@@ -1391,7 +1420,6 @@ def add_category(request):
             category = ServiceCategory.objects.create(
                 name=name,
                 description=description,
-                order=order,
                 is_active=is_active
             )
             
@@ -1420,10 +1448,12 @@ def edit_category(request, category_id):
                     'error': 'Category with this name already exists'
                 }, status=400)
             
+            # Store old name to update related services
+            old_name = category.name
+            
             # Update category
             category.name = new_name
             category.description = request.POST.get('description')
-            category.order = request.POST.get('order', category.order)
             category.is_active = request.POST.get('is_active') == 'on'
             category.save()
             
@@ -1463,18 +1493,21 @@ def delete_category(request, category_id):
             category = ServiceCategory.objects.get(id=category_id)
             
             # Check if category has services
-            if Service.objects.filter(category=category.name).exists():
+            if category.services.exists():
                 return JsonResponse({
-                    'error': 'Cannot delete category with existing services'
+                    'error': 'Cannot delete category that has services. Please reassign or delete the services first.'
                 }, status=400)
             
+            category_name = category.name
             category.delete()
             return JsonResponse({
                 'status': 'success',
-                'message': 'Category deleted successfully'
+                'message': f'Category {category_name} deleted successfully'
             })
         except ServiceCategory.DoesNotExist:
             return JsonResponse({'error': 'Category not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
             
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
@@ -1499,6 +1532,19 @@ def reorder_categories(request):
             return JsonResponse({'error': str(e)}, status=400)
             
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def get_category_info(request, category_id):
+    try:
+        category = ServiceCategory.objects.get(id=category_id)
+        data = {
+            'name': category.name,
+            'description': category.description,
+            'is_active': category.is_active,
+        }
+        return JsonResponse(data)
+    except ServiceCategory.DoesNotExist:
+        return JsonResponse({'error': 'Category not found'}, status=404)
 
 
 

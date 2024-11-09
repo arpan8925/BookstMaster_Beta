@@ -7,6 +7,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="addServiceForm">
+                {% csrf_token %}
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-12">
@@ -19,6 +20,15 @@
                                 <option value="">Select Category</option>
                                 {% for category in categories %}
                                 <option value="{{ category.name }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Provider</label>
+                            <select class="form-select" name="provider" required>
+                                <option value="">Select Provider</option>
+                                {% for provider in providers %}
+                                <option value="{{ provider.id }}">{{ provider.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>

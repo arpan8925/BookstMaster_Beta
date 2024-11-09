@@ -67,24 +67,66 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Add ticket form handler
-    document.getElementById('addTicketForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        
-        fetch(this.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
+    const addTicketForm = document.getElementById('addTicketForm');
+    if (addTicketForm) {
+        addTicketForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Validate form data
+            const user_id = formData.get('user_id');
+            const subject = formData.get('subject');
+            const content = formData.get('content');
+            
+            if (!user_id || !subject || !content) {
+                alert('Please fill in all required fields');
+                return;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                location.reload();
-            } else {
-                alert(data.error || 'Error creating ticket');
-            }
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addTicketModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    alert('Ticket created successfully');
+                    
+                    // Reload the page to show the new ticket
+                    location.reload();
+                } else {
+                    alert(data.error || 'Error creating ticket');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating ticket');
+            });
         });
-    });
-}); 
+    }
+});
+
+// Function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+} 
