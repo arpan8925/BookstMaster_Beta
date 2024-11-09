@@ -1,0 +1,90 @@
+# SmartPanel Cron Jobs Configuration
+# =================================
+
+# Format: 
+# minute hour day month day-of-week command
+# * * * * * command (every minute)
+# */5 * * * * command (every 5 minutes)
+# 0 * * * * command (every hour)
+# 0 0 * * * command (every day at midnight)
+
+# 1. Ticket Auto-Deletion (Daily Check)
+# Description: Deletes closed tickets that are older than 3 days
+# Runs: Every day at midnight (00:00)
+0 0 * * * python /path/to/your/manage.py cleanup_tickets
+
+# 2. Ticket Deletion Schedule Check
+# Description: Checks and processes scheduled ticket deletions
+# Runs: Every hour
+0 * * * * python /path/to/your/manage.py check_ticket_deletions
+
+# How to Install Cron Jobs:
+# ------------------------
+# 1. Open terminal and type: crontab -e
+# 2. Add the above lines (adjust paths to match your system)
+# 3. Save and exit
+
+# Important Notes:
+# ---------------
+# 1. Replace /path/to/your/ with actual path to your Django project
+# 2. Ensure proper permissions for the Python executable and project files
+# 3. Consider logging by adding >> /path/to/logfile.log 2>&1 to each command
+# 4. Test each command manually before adding to crontab
+
+# Example with Logging:
+# 0 0 * * * python /path/to/your/manage.py cleanup_tickets >> /path/to/logs/cleanup_tickets.log 2>&1
+
+# Monitoring:
+# ----------
+# 1. Check logs regularly
+# 2. Set up email notifications for failed jobs
+# 3. Monitor disk space used by log files
+
+# Development vs Production:
+# ------------------------
+# Development:
+# - Consider running less frequently
+# - Enable verbose logging
+# 
+# Production:
+# - Stick to schedule above
+# - Log only errors and important events
+# - Set up monitoring
+
+# Backup Consideration:
+# -------------------
+# Consider running backup before deletion jobs:
+# Pre-deletion backup example:
+# 55 23 * * * python /path/to/your/manage.py backup_tickets
+# 0 0 * * * python /path/to/your/manage.py cleanup_tickets
+
+# Testing Cron Jobs:
+# ----------------
+# Test commands:
+# 1. python manage.py cleanup_tickets --dry-run
+# 2. python manage.py check_ticket_deletions --dry-run
+
+# Troubleshooting:
+# --------------
+# 1. Check cron logs: grep CRON /var/log/syslog
+# 2. Ensure correct paths and permissions
+# 3. Test commands manually first
+# 4. Check application logs for errors
+
+# Additional Commands That Might Be Useful:
+# --------------------------------------
+# System Status Check (Every 5 minutes):
+*/5 * * * * python /path/to/your/manage.py check_system_status
+
+# Database Backup (Daily at 11 PM):
+0 23 * * * python /path/to/your/manage.py dbbackup
+
+# Cache Cleanup (Weekly on Sunday at 2 AM):
+0 2 * * 0 python /path/to/your/manage.py cleanup_cache
+
+# Remember to:
+# 1. Test all commands manually first
+# 2. Start with less frequent runs during testing
+# 3. Monitor logs after implementation
+# 4. Set up alerts for failures
+# 5. Document any changes to this schedule 

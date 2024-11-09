@@ -525,6 +525,8 @@ def send_mail(request):
 def view_ticket(request, ticket_id):
     try:
         ticket = Ticket.objects.get(id=ticket_id)
+        deletion_date = ticket.scheduled_deletion
+        
         data = {
             'id': ticket.id,
             'subject': ticket.subject,
@@ -534,6 +536,7 @@ def view_ticket(request, ticket_id):
             'priority': ticket.priority,
             'created_at': ticket.created.strftime('%Y-%m-%d %H:%M:%S'),
             'updated_at': ticket.changed.strftime('%Y-%m-%d %H:%M:%S') if ticket.changed else None,
+            'scheduled_deletion': deletion_date.strftime('%Y-%m-%d %H:%M:%S') if deletion_date else None
         }
         return JsonResponse(data)
     except Ticket.DoesNotExist:

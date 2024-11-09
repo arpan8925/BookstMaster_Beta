@@ -1,6 +1,10 @@
 from django.db import models
 from django.conf import settings
 from authentication.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils import timezone
+from datetime import timedelta
 
 
 
@@ -67,6 +71,41 @@ class Ticket(models.Model):
     def __str__(self):
 
         return f"#{self.id} - {self.subject}"
+
+    def delete_if_old(self):
+        """Delete ticket if it's closed and older than 3 days"""
+        if self.status == 'closed':
+            cutoff_date = timezone.now() - timedelta(days=3)
+            if self.changed <= cutoff_date:
+                self.delete()
+                return True
+        return False
+
+    @property
+    def scheduled_deletion(self):
+        """Return scheduled deletion date if ticket is closed"""
+        if self.status == 'closed':
+            from django.core.cache import cache
+            cache_key = f'ticket_deletion_{self.id}'
+            return cache.get(cache_key)
+        return None
+
+@receiver(post_save, sender=Ticket)
+def check_old_tickets(sender, instance, **kwargs):
+    """Check and delete old closed tickets when any ticket is saved"""
+    if instance.status == 'closed':
+        # Schedule deletion after 3 days
+        from django.core.cache import cache
+        from django.db import transaction
+        
+        # Set a cache key for this ticket's scheduled deletion
+        cache_key = f'ticket_deletion_{instance.id}'
+        
+        # Only set if not already scheduled
+        if not cache.get(cache_key):
+            # Schedule deletion
+            deletion_date = timezone.now() + timedelta(days=3)
+            cache.set(cache_key, deletion_date, timeout=3*24*60*60)  # 3 days in seconds
 
 
 
