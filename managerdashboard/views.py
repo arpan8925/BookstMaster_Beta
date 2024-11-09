@@ -58,20 +58,6 @@ def manager_dashboard(request):
 
 @permission_required('authentication.is_manager', login_url='manager_login')
 
-def reports(request):
-
-    context = {
-
-        'active_tab': 'reports',
-
-    }
-
-    return render(request, 'managerdashboard/reports.html', context)
-
-
-
-@permission_required('authentication.is_manager', login_url='manager_login')
-
 def orders(request):
 
     context = {
@@ -102,13 +88,89 @@ def services(request):
 
 def tickets(request):
 
+    # Get search query and filters
+
+    search_query = request.GET.get('search', '')
+
+    status_filter = request.GET.get('status', '')
+
+    priority_filter = request.GET.get('priority', '')
+
+    
+
+    # Base queryset
+
     tickets = Ticket.objects.all().order_by('-created_at')
+
+    
+
+    # Apply filters
+
+    if search_query:
+
+        tickets = tickets.filter(
+
+            Q(subject__icontains=search_query) |
+
+            Q(user__email__icontains=search_query)
+
+        )
+
+    
+
+    if status_filter:
+
+        tickets = tickets.filter(status=status_filter)
+
+    
+
+    if priority_filter:
+
+        tickets = tickets.filter(priority=priority_filter)
+
+    
+
+    # Count statistics
+
+    total_tickets = tickets.count()
+
+    pending_tickets = tickets.filter(status='pending').count()
+
+    in_progress_tickets = tickets.filter(status='in_progress').count()
+
+    completed_tickets = tickets.filter(status='completed').count()
+
+    
+
+    # Pagination
+
+    paginator = Paginator(tickets, 10)  # Show 10 tickets per page
+
+    page_number = request.GET.get('page')
+
+    tickets_page = paginator.get_page(page_number)
+
+    
 
     context = {
 
         'active_tab': 'tickets',
 
-        'tickets': tickets,
+        'tickets': tickets_page,
+
+        'total_tickets': total_tickets,
+
+        'pending_tickets': pending_tickets,
+
+        'in_progress_tickets': in_progress_tickets,
+
+        'completed_tickets': completed_tickets,
+
+        'search_query': search_query,
+
+        'status_filter': status_filter,
+
+        'priority_filter': priority_filter
 
     }
 
@@ -225,20 +287,6 @@ def toggle_user_status(request, user_id):
     except User.DoesNotExist:
 
         return JsonResponse({'error': 'User not found'}, status=404)
-
-
-
-@permission_required('authentication.is_manager', login_url='manager_login')
-
-def subscribers(request):
-
-    context = {
-
-        'active_tab': 'subscribers',
-
-    }
-
-    return render(request, 'managerdashboard/subscribers.html', context)
 
 
 
@@ -462,6 +510,82 @@ def send_mail(request):
         except User.DoesNotExist:
             messages.error(request, 'User not found')
     return redirect('managerdashboard:users')
+
+
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def view_ticket(request, ticket_id):
+    try:
+        ticket = Ticket.objects.get(id=ticket_id)
+        data = {
+            'id': ticket.id,
+            'subject': ticket.subject,
+            'content': ticket.content,
+            'user_email': ticket.user.email,
+            'status': ticket.status,
+            'priority': ticket.priority,
+            'created_at': ticket.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else None,
+        }
+        return JsonResponse(data)
+    except Ticket.DoesNotExist:
+        return JsonResponse({'error': 'Ticket not found'}, status=404)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def reply_ticket(request, ticket_id):
+    if request.method == 'POST':
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+            reply_content = request.POST.get('reply')
+            
+            # Add your reply logic here
+            # For example, create a TicketReply model instance
+            
+            ticket.status = 'in_progress'
+            ticket.save()
+            
+            return JsonResponse({'status': 'success'})
+        except Ticket.DoesNotExist:
+            return JsonResponse({'error': 'Ticket not found'}, status=404)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def close_ticket(request, ticket_id):
+    if request.method == 'POST':
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
+            ticket.status = 'closed'
+            ticket.save()
+            return JsonResponse({'status': 'success'})
+        except Ticket.DoesNotExist:
+            return JsonResponse({'error': 'Ticket not found'}, status=404)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def add_ticket(request):
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        subject = request.POST.get('subject')
+        content = request.POST.get('content')
+        priority = request.POST.get('priority', 'medium')
+        
+        try:
+            user = User.objects.get(id=user_id)
+            ticket = Ticket.objects.create(
+                user=user,
+                subject=subject,
+                content=content,
+                priority=priority,
+                status='pending'
+            )
+            messages.success(request, 'Ticket created successfully')
+            return JsonResponse({'status': 'success', 'ticket_id': ticket.id})
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+            
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 

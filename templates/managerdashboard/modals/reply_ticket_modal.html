@@ -1,0 +1,33 @@
+<!-- Reply Ticket Modal -->
+<div class="modal fade" id="replyTicketModal" tabindex="-1" aria-labelledby="replyTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="replyTicketModalLabel">Reply to Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="replyTicketForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="reply_content" class="form-label">Your Reply</label>
+                        <textarea class="form-control" id="reply_content" name="reply" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="ticket_status" class="form-label">Update Status</label>
+                        <select class="form-select" id="ticket_status" name="status">
+                            <option value="pending">Pending</option>
+                            <option value="in_progress" selected>In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> 

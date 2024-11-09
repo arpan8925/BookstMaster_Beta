@@ -1,0 +1,39 @@
+<!-- View Ticket Modal -->
+<div class="modal fade" id="viewTicketModal" tabindex="-1" aria-labelledby="viewTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewTicketModalLabel">View Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h6 class="text-muted">Ticket Information</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Subject:</strong> <span id="view_ticket_subject"></span></p>
+                            <p><strong>User:</strong> <span id="view_ticket_user"></span></p>
+                            <p><strong>Created:</strong> <span id="view_ticket_created"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span id="view_ticket_status"></span></p>
+                            <p><strong>Priority:</strong> <span id="view_ticket_priority"></span></p>
+                            <p><strong>Last Updated:</strong> <span id="view_ticket_updated"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <h6 class="text-muted">Message</h6>
+                    <div class="card">
+                        <div class="card-body" id="view_ticket_content">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="replyTicket(currentTicketId)">Reply</button>
+            </div>
+        </div>
+    </div>
+</div> 

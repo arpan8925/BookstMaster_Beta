@@ -18,17 +18,21 @@ urlpatterns = [
 
     path('', views.manager_dashboard, name='manager_dashboard'),
 
-    path('reports/', views.reports, name='reports'),
-
     path('orders/', views.orders, name='orders'),
 
     path('services/', views.services, name='services'),
 
     path('tickets/', views.tickets, name='tickets'),
 
-    path('users/', views.users, name='users'),
+    path('tickets/<int:ticket_id>/view/', views.view_ticket, name='view_ticket'),
 
-    path('subscribers/', views.subscribers, name='subscribers'),
+    path('tickets/<int:ticket_id>/reply/', views.reply_ticket, name='reply_ticket'),
+
+    path('tickets/<int:ticket_id>/close/', views.close_ticket, name='close_ticket'),
+
+    path('tickets/add/', views.add_ticket, name='add_ticket'),
+
+    path('users/', views.users, name='users'),
 
     path('providers/', views.providers, name='providers'),
 
