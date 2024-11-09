@@ -1,0 +1,43 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">API Documentation</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning">
+            <strong>Note:</strong> Please read the API instructions carefully. Its your solo responsibility what you add by our API.
+        </div>
+
+        <div class="table-responsive mb-4">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th style="width: 200px;">HTTP Method</th>
+                        <td>POST</td>
+                    </tr>
+                    <tr>
+                        <th>Response format</th>
+                        <td>Json</td>
+                    </tr>
+                    <tr>
+                        <th>API URL</th>
+                        <td>{{ api_data.api_url }}</td>
+                    </tr>
+                    <tr>
+                        <th>API Key</th>
+                        <td>{{ api_data.api_key }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+            <button class="btn btn-primary">
+                <i class="bi bi-download"></i> Download PHP Code Examples
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %} 

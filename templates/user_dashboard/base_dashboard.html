@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Remove any extra container/wrapper from base.html -->
+<div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="brand-header">
+            <h4 class="text-white mb-0">YourBrand</h4>
+        </div>
+        
+        <!-- User Profile -->
+        <div class="user-profile">
+            {% if user.profile_picture and user.profile_picture.url %}
+                <img src="{{ user.profile_picture.url }}" class="profile-img" alt="{{ user.username }}">
+            {% else %}
+                <img src="{% static 'images/default-avatar.png' %}" class="profile-img" alt="{{ user.username }}">
+            {% endif %}
+            <h6 class="username">{{ user.username }}</h6>
+            <small class="balance">Balance: ${{ user.balance|default:"0.00" }}</small>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-menu">
+            <a href="{% url 'user_dashboard' %}" class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <div class="nav-section">ORDERS</div>
+            <a href="{% url 'new_order' %}" class="nav-link {% if active_tab == 'new_order' %}active{% endif %}">
+                <i class="bi bi-plus-circle"></i>
+                <span>New Order</span>
+            </a>
+            <a href="{% url 'order_log' %}" class="nav-link {% if active_tab == 'order_history' %}active{% endif %}">
+                <i class="bi bi-list-ul"></i>
+                <span>Order History</span>
+            </a>
+
+            <div class="nav-section">SERVICES</div>
+            <a href="{% url 'services' %}" class="nav-link {% if active_tab == 'services' %}active{% endif %}">
+                <i class="bi bi-grid"></i>
+                <span>Services List</span>
+            </a>
+            <a href="{% url 'api_documentation' %}" class="nav-link {% if active_tab == 'api' %}active{% endif %}">
+                <i class="bi bi-code-square"></i>
+                <span>API Access</span>
+            </a>
+
+            <div class="nav-section">SUPPORT</div>
+            <a href="{% url 'ticket_list' %}" class="nav-link {% if active_tab == 'support' %}active{% endif %}">
+                <i class="bi bi-headset"></i>
+                <span>Support Tickets</span>
+            </a>
+
+            <div class="nav-section">PAYMENTS</div>
+            <a href="{% url 'add_funds' %}" class="nav-link {% if active_tab == 'add_funds' %}active{% endif %}">
+                <i class="bi bi-wallet2"></i>
+                <span>Add Funds</span>
+            </a>
+            <a href="{% url 'transaction_logs' %}" class="nav-link {% if active_tab == 'transactions' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i>
+                <span>Transaction History</span>
+            </a>
+
+            <div class="nav-section">ACCOUNT</div>
+            <a href="{% url 'user_profile' %}" class="nav-link {% if active_tab == 'profile' %}active{% endif %}">
+                <i class="bi bi-person"></i>
+                <span>Profile Settings</span>
+            </a>
+            <a href="{% url 'user_logout' %}" class="nav-link text-danger">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="page-header">
+                <h4>Dashboard</h4>
+            </div>
+            <div class="topbar-right">
+                <div class="search-box">
+                    <input type="search" placeholder="Search..." class="search-input">
+                    <button class="search-btn"><i class="bi bi-search"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content">
+            {% block dashboard_content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<style>
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+    background: #f4f6f9;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 250px;
+    background: #2c3e50;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    color: #fff;
+}
+
+.brand-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-profile {
+    padding: 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.profile-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+}
+
+.username {
+    margin-bottom: 0.25rem;
+    color: #fff;
+}
+
+.balance {
+    color: rgba(255,255,255,0.7);
+}
+
+.nav-menu {
+    padding: 1rem 0;
+}
+
+.nav-section {
+    padding: 1rem 1.5rem 0.5rem;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.nav-link:hover, .nav-link.active {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.nav-link i {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
+}
+
+/* Main Content Styles */
+.main {
+    flex: 1;
+    margin-left: 250px;
+    width: calc(100% - 250px);
+}
+
+.topbar {
+    background: #fff;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+}
+
+.search-input {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+    width: 250px;
+}
+
+.search-btn {
+    background: none;
+    border: none;
+    margin-left: -40px;
+    color: #666;
+    cursor: pointer;
+}
+
+.content {
+    padding: 2rem;
+}
+
+/* Card Styles */
+.card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid #eee;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .main {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+</style>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+{% endblock %} 

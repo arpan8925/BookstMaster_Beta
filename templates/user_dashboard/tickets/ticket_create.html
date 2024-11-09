@@ -1,0 +1,76 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Create New Ticket</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Subject</label>
+                <select class="form-select" name="subject" required>
+                    <option value="">Select subject</option>
+                    <option value="order">Order</option>
+                    <option value="payment">Payment</option>
+                    <option value="technical">Technical Issue</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Request</label>
+                <select class="form-select" name="request" required>
+                    <option value="">Select request type</option>
+                    <option value="refill">Refill</option>
+                    <option value="cancel">Cancel</option>
+                    <option value="support">Support</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Order ID</label>
+                <input type="text" class="form-control" name="order_id" placeholder="For multiple orders, please separate them using comma. (example: 12345,12345,12345)">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Message</label>
+                <div class="editor-toolbar">
+                    <button type="button" class="btn btn-sm btn-light"><i class="bi bi-type-bold"></i></button>
+                    <button type="button" class="btn btn-sm btn-light"><i class="bi bi-type-italic"></i></button>
+                    <button type="button" class="btn btn-sm btn-light"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" class="btn btn-sm btn-light"><i class="bi bi-list-ol"></i></button>
+                    <button type="button" class="btn btn-sm btn-light"><i class="bi bi-link"></i></button>
+                    <button type="button" class="btn btn-sm btn-light"><i class="bi bi-image"></i></button>
+                </div>
+                <textarea class="form-control" name="message" rows="6" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Priority</label>
+                <select class="form-select" name="priority" required>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</div>
+
+<style>
+.editor-toolbar {
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 0.25rem 0.25rem 0 0;
+}
+.editor-toolbar .btn {
+    margin-right: 0.25rem;
+}
+</style>
+{% endblock %} 

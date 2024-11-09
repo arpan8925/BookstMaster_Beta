@@ -1,0 +1,81 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <button class="btn btn-primary me-2">Single Order</button>
+                <button class="btn btn-outline-primary">Mass Order</button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" name="category">
+                    <option value="">Choose a category</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Service</label>
+                <select class="form-select" name="service">
+                    <option value="">Choose a service</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Link</label>
+                <input type="url" class="form-control" name="link" placeholder="https://">
+                <small class="text-muted">Enter the link to your social media profile or post</small>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" class="form-control" name="quantity">
+                        <small class="text-muted">Minimum: 100 - Maximum: 10000</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Price per 1000</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control" value="0.50" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Total Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" required>
+                    <label class="form-check-label">I have confirmed the order details</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Place Order</button>
+        </form>
+    </div>
+</div>
+{% endblock %} 
+
+
+
+
+
+

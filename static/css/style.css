@@ -1,0 +1,29 @@
+/* General Styles */
+.dropdown-menu {
+    z-index: 1050 !important;
+    position: absolute !important;
+}
+
+.table-responsive {
+    overflow: visible !important;
+}
+
+.dropdown {
+    position: static !important;
+}
+
+/* Ensure dropdowns in tables work correctly */
+.table td {
+    position: relative !important;
+}
+
+/* Additional styling for dropdown items */
+.dropdown-menu-end {
+    right: 0;
+    left: auto;
+}
+
+/* Ensure the dropdown stays above other elements */
+.card {
+    overflow: visible !important;
+} 

@@ -1,0 +1,156 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<h4 class="mb-4">Your account</h4>
+
+<!-- Basic Information Card -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Basic Information</h5>
+        <button class="btn btn-sm btn-link">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'user_profile' %}">
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">First name</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="first_name" value="{{ user.first_name }}" required>
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Last name</label>
+                    <input type="text" class="form-control" name="last_name" value="{{ user.last_name }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" class="form-control" name="email" value="{{ user.email }}" readonly>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" name="password" placeholder="••••••••">
+                        <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" name="confirm_password" placeholder="••••••••">
+                        <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Time zone</label>
+                <select class="form-select" name="timezone">
+                    <option value="UTC-11:00" {% if user.timezone == 'UTC-11:00' %}selected{% endif %}>(UTC-11:00) Pacific/Midway</option>
+                    <option value="UTC-10:00" {% if user.timezone == 'UTC-10:00' %}selected{% endif %}>(UTC-10:00) Hawaii</option>
+                    <!-- Add more timezone options -->
+                </select>
+            </div>
+
+            <div class="alert alert-warning">
+                <small>Note: If you don't want to change password then leave these password fields empty!</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<!-- More Information Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">More Informations</h5>
+        <button class="btn btn-sm btn-link">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'user_profile_more' %}">
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Website</label>
+                    <input type="url" class="form-control" name="website" value="{{ user.website }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone</label>
+                    <div class="input-group">
+                        <input type="tel" class="form-control" name="phone" value="{{ user.phone }}">
+                        <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Skype ID</label>
+                    <input type="text" class="form-control" name="skype" value="{{ user.skype }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">WhatsApp Number</label>
+                    <div class="input-group">
+                        <input type="tel" class="form-control" name="whatsapp" value="{{ user.whatsapp }}">
+                        <span class="input-group-text"><i class="bi bi-whatsapp"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Address</label>
+                    <input type="text" class="form-control" name="address" value="{{ user.address }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">City</label>
+                    <input type="text" class="form-control" name="city" value="{{ user.city }}">
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <small>Note: If you don't want add more information then leave these informations fields empty!</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+
+<!-- Your API key Card -->
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Your API key</h5>
+        <button class="btn btn-sm btn-link">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="form-label">Key</label>
+            <input type="text" class="form-control" value="{{ user.api_key }}" readonly>
+        </div>
+        <button class="btn btn-danger" onclick="generateNewApiKey()">Generate new</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generateNewApiKey() {
+    if (confirm('Are you sure you want to generate a new API key? Your old key will stop working!')) {
+        // Add AJAX call to generate new API key
+    }
+}
+</script>
+{% endblock %} 

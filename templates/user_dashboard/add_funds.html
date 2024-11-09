@@ -1,0 +1,54 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Add Funds</h5>
+        </div>
+        <div class="card-body">
+            <ul class="nav nav-tabs mb-4">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#perfectmoney" data-bs-toggle="tab">
+                        <i class="bi bi-p-circle"></i> Perfectmoney
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#bkash" data-bs-toggle="tab">
+                        <i class="bi bi-wallet2"></i> Bkash
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#manual" data-bs-toggle="tab">
+                        <i class="bi bi-cash"></i> Manual Payment
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="perfectmoney">
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Amount (USD)</label>
+                            <input type="number" class="form-control" name="amount" min="1" step="0.01" required>
+                        </div>
+                        <div class="alert alert-info">
+                            <ul class="mb-0">
+                                <li>Transaction fee: 2%</li>
+                                <li>THIS PAYMENT IS FOR SERVICES AND IT IS NOT REFUNDABLE</li>
+                            </ul>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" required>
+                            <label class="form-check-label">Yes, I understand after the funds added i will not ask fraudulent dispute or charge-back!</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Pay Now</button>
+                    </form>
+                </div>
+                <!-- Add other payment method tabs here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

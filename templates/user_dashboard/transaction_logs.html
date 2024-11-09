@@ -1,0 +1,41 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Transaction Logs</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Payment Method</th>
+                        <th>Amount (Includes Fee)</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.id }}</td>
+                        <td>{{ transaction.payment_method }}</td>
+                        <td>${{ transaction.amount }}</td>
+                        <td>{{ transaction.created }}</td>
+                        <td>
+                            <span class="badge bg-warning">{{ transaction.status }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No transactions found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 
