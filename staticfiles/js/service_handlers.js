@@ -26,6 +26,103 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Service form submission handler
+    const addServiceForm = document.getElementById('addServiceForm');
+    if (addServiceForm) {
+        addServiceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            console.log('Form submitted'); // Debug log
+            
+            const formData = new FormData(this);
+            
+            // Log form data for debugging
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            fetch('/manager/services/add/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => {
+                console.log('Response status:', response.status); // Debug log
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data); // Debug log
+                if (data.status === 'success') {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addServiceModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    alert(data.message);
+                    
+                    // Reload page to show new service
+                    location.reload();
+                } else {
+                    alert(data.error || 'Error creating service');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error); // Debug log
+                alert('Error creating service');
+            });
+        });
+    }
+
+    // Edit Service Form Handler
+    const editServiceForm = document.getElementById('editServiceForm');
+    if (editServiceForm) {
+        editServiceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            showLoader('Saving changes...');
+            
+            const formData = new FormData(this);
+            const serviceId = formData.get('service_id');
+            const isActiveSwitch = document.querySelector('#edit_is_active');
+            const isDripFeedSwitch = document.querySelector('#edit_is_drip_feed');
+            
+            formData.set('is_active', isActiveSwitch.checked ? 'on' : 'off');
+            formData.set('is_drip_feed', isDripFeedSwitch.checked ? 'on' : 'off');
+            
+            fetch(`/manager/services/${serviceId}/edit/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoader();
+                if (data.status === 'success') {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editServiceModal'));
+                    modal.hide();
+                    
+                    // Show success message
+                    alert(data.message);
+                    
+                    // Reload page to show updated service
+                    location.reload();
+                } else {
+                    alert(data.error || 'Error updating service');
+                }
+            })
+            .catch(error => {
+                hideLoader();
+                console.error('Error:', error);
+                alert('Error updating service');
+            });
+        });
+    }
 });
 
 // Filter services based on search and category

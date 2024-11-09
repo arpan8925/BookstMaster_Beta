@@ -33,14 +33,14 @@ document.addEventListener('DOMContentLoaded', function() {
         addServiceForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            showLoader('Creating service...');
+            console.log('Form submitted'); // Debug log
             
             const formData = new FormData(this);
-            const isActiveSwitch = document.querySelector('input[name="is_active"]');
-            const isDripFeedSwitch = document.querySelector('input[name="is_drip_feed"]');
             
-            formData.set('is_active', isActiveSwitch.checked ? 'on' : 'off');
-            formData.set('is_drip_feed', isDripFeedSwitch.checked ? 'on' : 'off');
+            // Log form data for debugging
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
             
             fetch('/manager/services/add/', {
                 method: 'POST',
@@ -49,9 +49,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRFToken': getCookie('csrftoken')
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status); // Debug log
+                return response.json();
+            })
             .then(data => {
-                hideLoader();
+                console.log('Response data:', data); // Debug log
                 if (data.status === 'success') {
                     // Close modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addServiceModal'));
@@ -67,8 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                hideLoader();
-                console.error('Error:', error);
+                console.error('Error:', error); // Debug log
                 alert('Error creating service');
             });
         });

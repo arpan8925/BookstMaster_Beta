@@ -1,5 +1,21 @@
 // Category form submission handler
 document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('categorySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterCategories();
+        });
+    }
+
+    // Status filter
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            filterCategories();
+        });
+    }
+
     // Add Category Form Handler
     const addCategoryForm = document.getElementById('addCategoryForm');
     if (addCategoryForm) {
@@ -16,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': csrftoken
                 }
             })
             .then(response => response.json())
@@ -59,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': csrftoken
                 }
             })
             .then(response => response.json())
@@ -86,90 +102,110 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+});
 
-    // Category Status Toggle
-    window.toggleCategoryStatus = function(categoryId) {
-        showLoader('Updating status...');
+// Edit Category
+window.editCategory = function(categoryId) {
+    showLoader('Loading category information...');
+    
+    fetch(`/manager/categories/get-info/${categoryId}/`)
+        .then(response => response.json())
+        .then(data => {
+            hideLoader();
+            document.getElementById('edit_category_id').value = categoryId;
+            document.getElementById('edit_name').value = data.name;
+            document.getElementById('edit_description').value = data.description || '';
+            document.getElementById('edit_is_active').checked = data.is_active;
+            
+            new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+        })
+        .catch(error => {
+            hideLoader();
+            alert('Error fetching category information');
+        });
+};
+
+// Delete Category
+window.deleteCategory = function(categoryId) {
+    if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+        showLoader('Deleting category...');
         
-        fetch(`/manager/categories/${categoryId}/toggle-status/`, {
+        fetch(`/manager/categories/${categoryId}/delete/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': csrftoken
             }
         })
         .then(response => response.json())
         .then(data => {
             hideLoader();
             if (data.status === 'success') {
-                // No need to reload, the switch will update automatically
+                location.reload();
             } else {
-                alert(data.error || 'Error updating status');
-                // Revert the switch if there was an error
-                const switchElement = document.querySelector(`input[onchange="toggleCategoryStatus(${categoryId})"]`);
-                if (switchElement) {
-                    switchElement.checked = !switchElement.checked;
-                }
+                alert(data.error || 'Error deleting category');
             }
         })
         .catch(error => {
             hideLoader();
-            alert('Error updating status');
-            // Revert the switch on error
+            alert('Error deleting category');
+        });
+    }
+};
+
+// Toggle Category Status
+window.toggleCategoryStatus = function(categoryId) {
+    showLoader('Updating status...');
+    
+    fetch(`/manager/categories/${categoryId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoader();
+        if (data.status === 'success') {
+            // No need to reload, the switch will update automatically
+        } else {
+            alert(data.error || 'Error updating status');
+            // Revert the switch if there was an error
             const switchElement = document.querySelector(`input[onchange="toggleCategoryStatus(${categoryId})"]`);
             if (switchElement) {
                 switchElement.checked = !switchElement.checked;
             }
-        });
-    };
-
-    // Delete Category
-    window.deleteCategory = function(categoryId) {
-        if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-            showLoader('Deleting category...');
-            
-            fetch(`/manager/categories/${categoryId}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoader();
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    alert(data.error || 'Error deleting category');
-                }
-            })
-            .catch(error => {
-                hideLoader();
-                alert('Error deleting category');
-            });
         }
-    };
+    })
+    .catch(error => {
+        hideLoader();
+        alert('Error updating status');
+        // Revert the switch on error
+        const switchElement = document.querySelector(`input[onchange="toggleCategoryStatus(${categoryId})"]`);
+        if (switchElement) {
+            switchElement.checked = !switchElement.checked;
+        }
+    });
+};
 
-    // Edit Category
-    window.editCategory = function(categoryId) {
-        showLoader('Loading category information...');
-        
-        fetch(`/manager/categories/${categoryId}/get-info/`)
-            .then(response => response.json())
-            .then(data => {
-                hideLoader();
-                document.getElementById('edit_category_id').value = categoryId;
-                document.getElementById('edit_name').value = data.name;
-                document.getElementById('edit_description').value = data.description || '';
-                document.getElementById('edit_is_active').checked = data.is_active;
-                
-                new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
-            })
-            .catch(error => {
-                hideLoader();
-                alert('Error fetching category information');
-            });
-    };
-});
+// Filter categories function
+function filterCategories() {
+    const searchTerm = document.getElementById('categorySearch').value.toLowerCase();
+    const status = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('tbody tr');
+
+    rows.forEach(row => {
+        const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+        const description = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+        const isActive = row.querySelector('.form-check-input').checked;
+
+        const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
+        const matchesStatus = status === '' || 
+            (status === 'active' && isActive) || 
+            (status === 'inactive' && !isActive);
+
+        row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+    });
+}
 
 // Loader functions
 function showLoader(message = 'Please wait...') {
@@ -191,20 +227,4 @@ function hideLoader() {
     if (loader) {
         loader.remove();
     }
-}
-
-// Helper function to get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
 } 

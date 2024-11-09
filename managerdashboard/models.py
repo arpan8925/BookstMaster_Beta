@@ -68,9 +68,9 @@ class Service(models.Model):
         ('deactive', 'Deactive')
     ]
 
-    service_id = models.CharField(max_length=50, unique=True)
+    service_id = models.CharField(max_length=50)
     name = models.CharField(max_length=255)
-    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name='services')
+    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name='services', null=True)
     category = models.ForeignKey(ServiceCategory, on_delete=models.PROTECT, related_name='services')
     rate = models.DecimalField(max_digits=10, decimal_places=4)
     min_order = models.IntegerField()
@@ -84,10 +84,9 @@ class Service(models.Model):
 
     class Meta:
         ordering = ['category', 'name']
-        unique_together = ['provider', 'service_id']
 
     def __str__(self):
-        return f"{self.name} ({self.provider.name})"
+        return f"{self.name} ({self.category.name})"
 
 class ServiceUpdate(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='updates')

@@ -7,8 +7,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Services Management</h1>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary" onclick="importServices()">
-                <i class="bi bi-cloud-download"></i> Import Services
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importServicesModal">
+                <i class="bi bi-download"></i> Import Services
             </button>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addServiceModal">
                 <i class="bi bi-plus"></i> Add Service
@@ -20,25 +20,25 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="input-group">
                         <input type="text" class="form-control" id="serviceSearch" 
                                placeholder="Search services...">
-                        <button class="btn btn-primary" onclick="searchServices()">
+                        <button class="btn btn-primary">
                             <i class="bi bi-search"></i>
                         </button>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="categoryFilter" onchange="filterServices()">
+                <div class="col-md-2">
+                    <select class="form-select" id="categoryFilter">
                         <option value="">All Categories</option>
                         {% for category in categories %}
-                        <option value="{{ category }}">{{ category }}</option>
+                        <option value="{{ category.name }}">{{ category.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="providerFilter" onchange="filterServices()">
+                <div class="col-md-2">
+                    <select class="form-select" id="providerFilter">
                         <option value="">All Providers</option>
                         {% for provider in providers %}
                         <option value="{{ provider.id }}">{{ provider.name }}</option>
@@ -46,10 +46,11 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select" id="statusFilter" onchange="filterServices()">
+                    <select class="form-select" id="statusFilter">
                         <option value="">All Status</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
+                        <option value="deactive">Deactive</option>
                     </select>
                 </div>
             </div>
@@ -75,18 +76,19 @@
                     </thead>
                     <tbody>
                         {% for service in services %}
-                        <tr>
+                        <tr data-service-id="{{ service.id }}">
                             <td>{{ service.service_id }}</td>
                             <td>{{ service.name }}</td>
-                            <td>{{ service.provider.name }}</td>
-                            <td>{{ service.category }}</td>
+                            <td data-provider-id="{{ service.provider.id }}">{{ service.provider.name }}</td>
+                            <td data-category="{{ service.category.name|lower }}">{{ service.category.name }}</td>
                             <td>${{ service.rate }}</td>
-                            <td>{{ service.min }}/{{ service.max }}</td>
+                            <td>{{ service.min_order }}/{{ service.max_order }}</td>
                             <td>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" 
-                                           {% if service.is_active %}checked{% endif %}
-                                           onchange="toggleServiceStatus({{ service.id }})">
+                                           {% if service.status == 'active' %}checked{% endif %}
+                                           onchange="toggleServiceStatus({{ service.id }})"
+                                           data-status="{{ service.status }}">
                                 </div>
                             </td>
                             <td>
@@ -100,6 +102,15 @@
                                     <button class="btn btn-sm btn-outline-danger" onclick="deleteService({{ service.id }})">
                                         <i class="bi bi-trash"></i>
                                     </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox fs-2"></i>
+                                    <p class="mt-2">No services found</p>
                                 </div>
                             </td>
                         </tr>
@@ -138,6 +149,11 @@
 
 <!-- Include service modals -->
 {% include 'managerdashboard/modals/service_modals.html' %}
+
+<!-- CSRF Token -->
+<script>
+    const csrftoken = '{{ csrf_token }}';
+</script>
 
 <!-- Include service handlers JavaScript -->
 <script src="{% static 'js/service_page_handlers.js' %}"></script>

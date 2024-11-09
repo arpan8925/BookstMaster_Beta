@@ -76,6 +76,8 @@ urlpatterns = [
 
     path('providers/import-services/', views.import_services, name='import_services'),
 
+    path('services/', views.services, name='services'),
+
     path('services/add/', views.add_service, name='add_service'),
 
     path('services/<int:service_id>/edit/', views.edit_service, name='edit_service'),
@@ -97,6 +99,8 @@ urlpatterns = [
     path('categories/reorder/', views.reorder_categories, name='reorder_categories'),
 
     path('categories/get-info/<int:category_id>/', views.get_category_info, name='get_category_info'),
+
+    path('services/<int:service_id>/get-info/', views.get_service_info, name='get_service_info'),
 
 ]
 

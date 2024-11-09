@@ -1236,37 +1236,41 @@ def import_services(request):
 def add_service(request):
     if request.method == 'POST':
         try:
-            data = request.POST
+            print("Received POST request for add_service")
+            print("POST data:", request.POST)
             
             # Get or create category
             category, _ = ServiceCategory.objects.get_or_create(
-                name=data.get('category'),
+                name=request.POST.get('category'),
                 defaults={'is_active': True}
             )
+            print("Category:", category)
             
-            # Get the first active provider
+            # Get the first active provider or create a default one
             provider = Provider.objects.filter(is_active=True).first()
             if not provider:
-                return JsonResponse({
-                    'error': 'No active provider available'
-                }, status=400)
-            
-            # Generate a unique service ID
-            service_id = f'SRV{int(timezone.now().timestamp())}'
+                provider = Provider.objects.create(
+                    name="Default Provider",
+                    api_url="https://example.com",
+                    api_key="default_key",
+                    is_active=True
+                )
+            print("Provider:", provider)
             
             # Create service
             service = Service.objects.create(
-                service_id=service_id,
-                name=data.get('name'),
-                provider=provider,
+                service_id=f'SRV{int(timezone.now().timestamp())}',
+                name=request.POST.get('name'),
+                provider=provider,  # Set the provider here
                 category=category,
-                rate=Decimal(data.get('rate')),
-                min_order=int(data.get('min_order')),
-                max_order=int(data.get('max_order')),
-                description=data.get('description', ''),
-                status='active' if data.get('is_active') == 'on' else 'inactive',
-                is_drip_feed=data.get('is_drip_feed') == 'on'
+                rate=Decimal(request.POST.get('rate')),
+                min_order=int(request.POST.get('min_order')),
+                max_order=int(request.POST.get('max_order')),
+                description=request.POST.get('description', ''),
+                status='active' if request.POST.get('is_active') == 'on' else 'inactive',
+                is_drip_feed=request.POST.get('is_drip_feed') == 'on'
             )
+            print("Service created:", service)
             
             return JsonResponse({
                 'status': 'success',
@@ -1274,17 +1278,15 @@ def add_service(request):
                 'service_id': service.id
             })
             
-        except ValueError as e:
-            print(f"Value Error: {str(e)}")  # Add debugging
-            return JsonResponse({
-                'error': 'Invalid numeric value provided'
-            }, status=400)
         except Exception as e:
-            print(f"Error creating service: {str(e)}")  # Add debugging
+            print(f"Error in add_service: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({
                 'error': str(e)
             }, status=400)
-            
+    
+    print("Invalid request method for add_service")
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 @permission_required('authentication.is_manager', login_url='manager_login')
@@ -1538,6 +1540,24 @@ def get_category_info(request, category_id):
         return JsonResponse(data)
     except ServiceCategory.DoesNotExist:
         return JsonResponse({'error': 'Category not found'}, status=404)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def get_service_info(request, service_id):
+    try:
+        service = Service.objects.get(id=service_id)
+        data = {
+            'name': service.name,
+            'category': service.category.name,
+            'rate': str(service.rate),
+            'min_order': service.min_order,
+            'max_order': service.max_order,
+            'description': service.description,
+            'status': service.status,
+            'is_drip_feed': service.is_drip_feed
+        }
+        return JsonResponse(data)
+    except Service.DoesNotExist:
+        return JsonResponse({'error': 'Service not found'}, status=404)
 
 
 
