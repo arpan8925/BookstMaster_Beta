@@ -62,6 +62,16 @@ urlpatterns = [
 
     path('providers/add-funds/', views.add_provider_funds, name='add_provider_funds'),
 
+    path('providers/<int:provider_id>/get-info/', views.get_provider_info, name='get_provider_info'),
+
+    path('providers/<int:provider_id>/check-balance/', views.check_provider_balance, name='check_provider_balance'),
+
+    path('providers/<int:provider_id>/sync-services/', views.sync_provider_services, name='sync_provider_services'),
+
+    path('providers/<int:provider_id>/services/', views.provider_services, name='provider_services'),
+
+    path('providers/<int:provider_id>/delete/', views.delete_provider, name='delete_provider'),
+
 ]
 
 

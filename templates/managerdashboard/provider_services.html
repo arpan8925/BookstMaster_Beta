@@ -1,0 +1,98 @@
+{% extends 'managerdashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">{{ provider.name }} - Services</h1>
+            <p class="text-muted">Last synced: {{ provider.last_sync|default:"Never" }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="syncServices({{ provider.id }})">
+                <i class="bi bi-arrow-repeat"></i> Sync Services
+            </button>
+            <button class="btn btn-primary" onclick="importSelectedServices()">
+                <i class="bi bi-download"></i> Import Selected
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="serviceSearch" 
+                               placeholder="Search services...">
+                        <button class="btn btn-primary" onclick="searchServices()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="serviceCategory" onchange="filterServices()">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" class="form-check-input" id="selectAll"
+                                       onchange="toggleAllServices()">
+                            </th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Rate</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servicesTableBody">
+                        {% for service in services %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input service-select"
+                                       value="{{ service.service_id }}">
+                            </td>
+                            <td>{{ service.service_id }}</td>
+                            <td>{{ service.name }}</td>
+                            <td>{{ service.category }}</td>
+                            <td>${{ service.rate }}</td>
+                            <td>{{ service.min }}</td>
+                            <td>{{ service.max }}</td>
+                            <td>{{ service.description }}</td>
+                            <td>
+                                <span class="badge bg-{{ service.status|lower }}">
+                                    {{ service.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service handlers JavaScript -->
+<script src="{% static 'js/service_handlers.js' %}"></script>
+{% endblock %} 
