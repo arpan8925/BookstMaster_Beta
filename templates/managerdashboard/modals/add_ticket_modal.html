@@ -1,6 +1,6 @@
 <!-- Add Ticket Modal -->
 <div class="modal fade" id="addTicketModal" tabindex="-1" aria-labelledby="addTicketModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addTicketModalLabel">Create New Ticket</h5>
@@ -9,14 +9,29 @@
             <form method="POST" action="{% url 'managerdashboard:add_ticket' %}" id="addTicketForm">
                 {% csrf_token %}
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="user_id" class="form-label">User</label>
-                        <select class="form-select" id="user_id" name="user_id" required>
-                            <option value="">Select User</option>
-                            {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.email }}</option>
-                            {% endfor %}
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="user_id" class="form-label">User</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="user_search" placeholder="Search user...">
+                                <select class="form-select" id="user_id" name="user_id" required>
+                                    <option value="">Select User</option>
+                                    {% for user in all_users %}
+                                    <option value="{{ user.id }}" data-email="{{ user.email|lower }}" data-username="{{ user.username|lower }}">
+                                        {{ user.email }} ({{ user.username }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subject</label>
@@ -24,15 +39,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="content" class="form-label">Message</label>
-                        <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="priority" class="form-label">Priority</label>
-                        <select class="form-select" id="priority" name="priority">
-                            <option value="low">Low</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
-                        </select>
+                        <textarea class="form-control" id="content" name="content" rows="8" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -42,4 +49,22 @@
             </form>
         </div>
     </div>
-</div> 
+</div>
+
+<script>
+document.getElementById('user_search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const select = document.getElementById('user_id');
+    const options = select.getElementsByTagName('option');
+    
+    for (let option of options) {
+        if (option.value === '') continue; // Skip the placeholder option
+        
+        const email = option.getAttribute('data-email');
+        const username = option.getAttribute('data-username');
+        const matches = email.includes(searchTerm) || username.includes(searchTerm);
+        
+        option.style.display = matches ? '' : 'none';
+    }
+});
+</script> 

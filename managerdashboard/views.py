@@ -104,6 +104,12 @@ def tickets(request):
 
     
 
+    # Get all active users for the add ticket modal
+
+    all_users = User.objects.filter(is_active=True).order_by('email')
+
+    
+
     # Apply filters
 
     if search_query:
@@ -170,7 +176,9 @@ def tickets(request):
 
         'status_filter': status_filter,
 
-        'priority_filter': priority_filter
+        'priority_filter': priority_filter,
+
+        'all_users': all_users,
 
     }
 
@@ -564,13 +572,17 @@ def close_ticket(request, ticket_id):
 @permission_required('authentication.is_manager', login_url='manager_login')
 def add_ticket(request):
     if request.method == 'POST':
-        user_id = request.POST.get('user_id')
-        subject = request.POST.get('subject')
-        content = request.POST.get('content')
-        priority = request.POST.get('priority', 'medium')
-        
         try:
+            user_id = request.POST.get('user_id')
+            subject = request.POST.get('subject')
+            content = request.POST.get('content')
+            priority = request.POST.get('priority', 'medium')
+            
+            if not all([user_id, subject, content]):
+                return JsonResponse({'error': 'All fields are required'}, status=400)
+            
             user = User.objects.get(id=user_id)
+            
             ticket = Ticket.objects.create(
                 user=user,
                 subject=subject,
@@ -578,13 +590,19 @@ def add_ticket(request):
                 priority=priority,
                 status='pending'
             )
+            
             messages.success(request, 'Ticket created successfully')
-            return JsonResponse({'status': 'success', 'ticket_id': ticket.id})
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Ticket created successfully',
+                'ticket_id': ticket.id
+            })
+            
         except User.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+            return JsonResponse({'error': 'Selected user not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-            
+    
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
