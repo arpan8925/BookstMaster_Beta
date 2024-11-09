@@ -64,8 +64,7 @@ class ServiceCategory(models.Model):
 class Service(models.Model):
     STATUS_CHOICES = [
         ('active', 'Active'),
-        ('inactive', 'Inactive'),
-        ('deactive', 'Deactive')
+        ('inactive', 'Inactive')
     ]
 
     service_id = models.CharField(max_length=50)
