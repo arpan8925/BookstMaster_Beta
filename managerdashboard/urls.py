@@ -56,6 +56,12 @@ urlpatterns = [
 
     path('users/send-mail/', views.send_mail, name='send_mail'),
 
+    path('providers/add/', views.add_provider, name='add_provider'),
+
+    path('providers/<int:provider_id>/toggle-status/', views.toggle_provider_status, name='toggle_provider_status'),
+
+    path('providers/add-funds/', views.add_provider_funds, name='add_provider_funds'),
+
 ]
 
 

@@ -20,6 +20,8 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from .models import Transaction
 
+from managerdashboard.models import Provider, ProviderTransaction
+
 
 
 @permission_required('authentication.is_manager', login_url='manager_login')
@@ -302,13 +304,291 @@ def toggle_user_status(request, user_id):
 
 def providers(request):
 
+    # Get search query and filters
+
+    search_query = request.GET.get('search', '')
+
+    status_filter = request.GET.get('status', '')
+
+    sort_by = request.GET.get('sort', 'name')
+
+    
+
+    # Base queryset
+
+    providers_qs = Provider.objects.all()
+
+    
+
+    # Apply filters
+
+    if search_query:
+
+        providers_qs = providers_qs.filter(
+
+            Q(name__icontains=search_query) |
+
+            Q(description__icontains=search_query)
+
+        )
+
+    
+
+    if status_filter == 'active':
+
+        providers_qs = providers_qs.filter(is_active=True)
+
+    elif status_filter == 'inactive':
+
+        providers_qs = providers_qs.filter(is_active=False)
+
+    
+
+    # Apply sorting
+
+    if sort_by == 'balance':
+
+        providers_qs = providers_qs.order_by('-balance')
+
+    elif sort_by == 'status':
+
+        providers_qs = providers_qs.order_by('-is_active', 'name')
+
+    else:  # default to name
+
+        providers_qs = providers_qs.order_by('name')
+
+    
+
+    # Get counts for filter badges
+
+    total_count = Provider.objects.count()
+
+    active_count = Provider.objects.filter(is_active=True).count()
+
+    inactive_count = Provider.objects.filter(is_active=False).count()
+
+    
+
+    # Pagination
+
+    paginator = Paginator(providers_qs, 10)  # Show 10 providers per page
+
+    page_number = request.GET.get('page')
+
+    providers = paginator.get_page(page_number)
+
+    
+
     context = {
 
         'active_tab': 'providers',
 
+        'providers': providers,
+
+        'total_count': total_count,
+
+        'active_count': active_count,
+
+        'inactive_count': inactive_count,
+
+        'search_query': search_query,
+
+        'status_filter': status_filter,
+
+        'sort_by': sort_by
+
     }
 
     return render(request, 'managerdashboard/providers.html', context)
+
+
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+
+def add_provider(request):
+
+    if request.method == 'POST':
+
+        try:
+
+            # Get form data
+
+            name = request.POST.get('name')
+
+            api_url = request.POST.get('api_url')
+
+            api_key = request.POST.get('api_key')
+
+            description = request.POST.get('description')
+
+            is_active = request.POST.get('is_active') == 'on'
+
+            
+
+            # Validate required fields
+
+            if not all([name, api_url, api_key]):
+
+                return JsonResponse({
+
+                    'error': 'Name, API URL, and API Key are required'
+
+                }, status=400)
+
+            
+
+            # Create provider
+
+            provider = Provider.objects.create(
+
+                name=name,
+
+                api_url=api_url,
+
+                api_key=api_key,
+
+                description=description,
+
+                is_active=is_active
+
+            )
+
+            
+
+            # Return success response
+
+            return JsonResponse({
+
+                'status': 'success',
+
+                'message': f'Provider {name} created successfully',
+
+                'provider_id': provider.id
+
+            })
+
+            
+
+        except Exception as e:
+
+            print(f"Error creating provider: {str(e)}")
+
+            return JsonResponse({
+
+                'error': f'Error creating provider: {str(e)}'
+
+            }, status=400)
+
+    
+
+    return JsonResponse({
+
+        'error': 'Invalid request method'
+
+    }, status=405)
+
+
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+
+def toggle_provider_status(request, provider_id):
+
+    if request.method == 'POST':
+
+        try:
+
+            provider = Provider.objects.get(id=provider_id)
+
+            provider.is_active = not provider.is_active
+
+            provider.save()
+
+            return JsonResponse({
+
+                'status': 'success',
+
+                'is_active': provider.is_active
+
+            })
+
+        except Provider.DoesNotExist:
+
+            return JsonResponse({'error': 'Provider not found'}, status=404)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+
+def add_provider_funds(request):
+
+    if request.method == 'POST':
+
+        try:
+
+            provider_id = request.POST.get('provider_id')
+
+            amount = Decimal(request.POST.get('amount'))
+
+            notes = request.POST.get('notes', '')
+
+            
+
+            if amount <= 0:
+
+                return JsonResponse({'error': 'Amount must be greater than 0'}, status=400)
+
+            
+
+            with transaction.atomic():
+
+                provider = Provider.objects.get(id=provider_id)
+
+                provider.balance += amount
+
+                provider.save()
+
+                
+
+                ProviderTransaction.objects.create(
+
+                    provider=provider,
+
+                    amount=amount,
+
+                    type='credit',
+
+                    notes=notes,
+
+                    added_by=request.user
+
+                )
+
+                
+
+            return JsonResponse({
+
+                'status': 'success',
+
+                'message': f'${amount} added to {provider.name}',
+
+                'new_balance': str(provider.balance)
+
+            })
+
+        except Provider.DoesNotExist:
+
+            return JsonResponse({'error': 'Provider not found'}, status=404)
+
+        except Exception as e:
+
+            return JsonResponse({'error': str(e)}, status=400)
+
+            
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 
