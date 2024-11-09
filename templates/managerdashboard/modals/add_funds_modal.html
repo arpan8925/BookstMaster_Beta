@@ -14,20 +14,12 @@
                         <label for="amount" class="form-label">Amount</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="amount" name="amount" step="0.01" min="0" required>
+                            <input type="number" class="form-control" id="amount" name="amount" 
+                                   step="0.01" min="0.01" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="payment_method" class="form-label">Payment Method</label>
-                        <select class="form-select" id="payment_method" name="payment_method" required>
-                            <option value="">Select payment method</option>
-                            <option value="credit_card">Credit Card</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="paypal">PayPal</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
+                        <label for="notes" class="form-label">Notes (Optional)</label>
                         <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
                     </div>
                 </div>
@@ -38,4 +30,32 @@
             </form>
         </div>
     </div>
-</div> 
+</div>
+
+<!-- Add this script at the bottom of the modal -->
+<script>
+document.getElementById('addFundsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert(data.error || 'Error adding funds');
+        }
+    })
+    .catch(error => {
+        alert('Error adding funds');
+    });
+});
+</script> 

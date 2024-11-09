@@ -16,6 +16,9 @@ from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail as django_send_mail
 from django.conf import settings
+from decimal import Decimal, InvalidOperation
+from django.db import transaction
+from .models import Transaction
 
 
 
@@ -375,13 +378,41 @@ def add_funds(request):
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
         amount = request.POST.get('amount')
+        notes = request.POST.get('notes', '')
+
         try:
-            user = User.objects.get(id=user_id)
-            # Add your fund addition logic here
-            messages.success(request, f'${amount} added to {user.username}\'s account')
+            amount = Decimal(amount)
+            if amount <= 0:
+                return JsonResponse({'error': 'Amount must be greater than 0'}, status=400)
+
+            with transaction.atomic():
+                user = User.objects.get(id=user_id)
+                user.balance = user.balance + amount
+                user.save()
+
+                # Create transaction record
+                Transaction.objects.create(
+                    user=user,
+                    amount=amount,
+                    type='credit',
+                    notes=notes,
+                    added_by=request.user
+                )
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'${amount} added to {user.username}\'s account',
+                'new_balance': str(user.balance)
+            })
+
         except User.DoesNotExist:
-            messages.error(request, 'User not found')
-    return redirect('managerdashboard:users')
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except (ValueError, InvalidOperation):
+            return JsonResponse({'error': 'Invalid amount'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 
