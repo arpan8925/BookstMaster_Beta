@@ -1,0 +1,103 @@
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'managerdashboard:add_user' %}" id="addUserForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                        <label class="form-check-label" for="is_active">Active User</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal JavaScript -->
+<script>
+document.getElementById('addUserForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
+    
+    // Reset previous error messages
+    clearErrors();
+    
+    // Validate username
+    if (username.length < 3) {
+        showError('username', 'Username must be at least 3 characters long');
+        return;
+    }
+    
+    // Validate email format
+    if (!isValidEmail(email)) {
+        showError('email', 'Please enter a valid email address');
+        return;
+    }
+    
+    // Validate password
+    if (password.length < 8) {
+        showError('password', 'Password must be at least 8 characters long');
+        return;
+    }
+    
+    // Check if passwords match
+    if (password !== confirmPassword) {
+        showError('confirm_password', 'Passwords do not match');
+        return;
+    }
+    
+    // If all validations pass, submit the form
+    this.submit();
+});
+
+function showError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'invalid-feedback d-block';
+    errorDiv.textContent = message;
+    field.classList.add('is-invalid');
+    field.parentNode.appendChild(errorDiv);
+}
+
+function clearErrors() {
+    const errorMessages = document.querySelectorAll('.invalid-feedback');
+    const invalidFields = document.querySelectorAll('.is-invalid');
+    
+    errorMessages.forEach(error => error.remove());
+    invalidFields.forEach(field => field.classList.remove('is-invalid'));
+}
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+</script> 

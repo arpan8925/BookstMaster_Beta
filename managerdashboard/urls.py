@@ -40,6 +40,18 @@ urlpatterns = [
 
     path('users/add/', views.add_user, name='add_user'),
 
+    path('users/<int:user_id>/get-info/', views.get_user_info, name='get_user_info'),
+
+    path('users/edit/', views.edit_user, name='edit_user'),
+
+    path('users/<int:user_id>/delete/', views.delete_user, name='delete_user'),
+
+    path('users/add-funds/', views.add_funds, name='add_funds'),
+
+    path('users/set-password/', views.set_password, name='set_password'),
+
+    path('users/send-mail/', views.send_mail, name='send_mail'),
+
 ]
 
 
