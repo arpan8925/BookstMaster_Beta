@@ -38,48 +38,68 @@ class Ticket(models.Model):
 
     subject = models.CharField(max_length=200)
 
-    content = models.TextField()
+    description = models.TextField()
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
 
-    updated_at = models.DateTimeField(auto_now=True)
+    changed = models.DateTimeField(auto_now=True)
 
     unread = models.BooleanField(default=True)
+
+    uid = models.IntegerField(null=True, blank=True)
+
+    ids = models.CharField(max_length=255, null=True, blank=True)
 
 
 
     class Meta:
 
-        ordering = ['-created_at']
+        ordering = ['-created']
+
+        db_table = 'tickets'
 
 
 
     def __str__(self):
 
-        return f"{self.subject} - {self.user.email}"
+        return f"#{self.id} - {self.subject}"
 
 
 
-class TicketReply(models.Model):
+class TicketMessage(models.Model):
 
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='replies')
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='messages')
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     message = models.TextField()
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created = models.DateTimeField(auto_now_add=True)
 
-    is_staff_reply = models.BooleanField(default=False)
+    changed = models.DateTimeField(auto_now=True)
+
+    is_read = models.BooleanField(default=False)
+
+    uid = models.IntegerField(null=True, blank=True)
+
+    ids = models.CharField(max_length=255, null=True, blank=True)
 
 
 
     class Meta:
 
-        ordering = ['created_at']
+        ordering = ['created']
+
+        db_table = 'ticket_messages'
+
+
+
+    def __str__(self):
+
+        return f"Message for Ticket #{self.ticket.id}"
 
 

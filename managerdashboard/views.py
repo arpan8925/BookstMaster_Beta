@@ -6,7 +6,7 @@ from django.db.models import Count, Sum
 
 from authentication.models import User
 
-from user_dashboard.models import Ticket
+from user_dashboard.models import Ticket, TicketMessage
 
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -100,7 +100,7 @@ def tickets(request):
 
     # Base queryset
 
-    tickets = Ticket.objects.all().order_by('-created_at')
+    tickets = Ticket.objects.all().order_by('-created')
 
     
 
@@ -528,12 +528,12 @@ def view_ticket(request, ticket_id):
         data = {
             'id': ticket.id,
             'subject': ticket.subject,
-            'content': ticket.content,
+            'content': ticket.description,
             'user_email': ticket.user.email,
             'status': ticket.status,
             'priority': ticket.priority,
-            'created_at': ticket.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'updated_at': ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else None,
+            'created_at': ticket.created.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': ticket.changed.strftime('%Y-%m-%d %H:%M:%S') if ticket.changed else None,
         }
         return JsonResponse(data)
     except Ticket.DoesNotExist:
@@ -586,12 +586,18 @@ def add_ticket(request):
             ticket = Ticket.objects.create(
                 user=user,
                 subject=subject,
-                content=content,
+                description=content,
                 priority=priority,
                 status='pending'
             )
             
-            messages.success(request, 'Ticket created successfully')
+            # Create initial message
+            TicketMessage.objects.create(
+                ticket=ticket,
+                user=request.user,
+                message=content
+            )
+            
             return JsonResponse({
                 'status': 'success',
                 'message': 'Ticket created successfully',

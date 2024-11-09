@@ -1,7 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Ticket, TicketReply
+from .models import Ticket, TicketMessage
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 @login_required
 def ticket_list(request):
@@ -43,7 +47,7 @@ def ticket_detail(request, pk):
     if request.method == 'POST':
         message = request.POST.get('message')
         if message:
-            TicketReply.objects.create(
+            TicketMessage.objects.create(
                 ticket=ticket,
                 user=request.user,
                 message=message
@@ -53,7 +57,7 @@ def ticket_detail(request, pk):
     
     return render(request, 'user_dashboard/tickets/ticket_detail.html', {
         'ticket': ticket,
-        'replies': ticket.replies.all()
+        'replies': ticket.messages.all()
     })
 
 @login_required
@@ -231,3 +235,84 @@ def transaction_logs(request):
         'transactions': transactions
     }
     return render(request, 'user_dashboard/transaction_logs.html', context)
+
+@login_required
+def tickets(request):
+    tickets = Ticket.objects.filter(user=request.user).order_by('-created')
+    
+    paginator = Paginator(tickets, 10)  # Show 10 tickets per page
+    page_number = request.GET.get('page')
+    tickets_page = paginator.get_page(page_number)
+    
+    context = {
+        'tickets': tickets_page,
+        'active_tab': 'tickets'
+    }
+    return render(request, 'user_dashboard/tickets.html', context)
+
+@login_required
+def create_ticket(request):
+    if request.method == 'POST':
+        subject = request.POST.get('subject')
+        content = request.POST.get('content')
+        priority = request.POST.get('priority', 'medium')
+        
+        if subject and content:
+            ticket = Ticket.objects.create(
+                user=request.user,
+                subject=subject,
+                description=content,
+                priority=priority
+            )
+            
+            # Create initial message
+            TicketMessage.objects.create(
+                ticket=ticket,
+                user=request.user,
+                message=content
+            )
+            
+            return JsonResponse({'status': 'success', 'ticket_id': ticket.id})
+        return JsonResponse({'status': 'error', 'message': 'Missing required fields'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def view_ticket(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id, user=request.user)
+    messages = ticket.messages.all().order_by('created')  # Changed from replies to messages
+    
+    context = {
+        'ticket': ticket,
+        'messages': messages,
+        'active_tab': 'tickets'
+    }
+    return render(request, 'user_dashboard/view_ticket.html', context)
+
+@login_required
+@require_POST
+def reply_ticket(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id, user=request.user)
+    message = request.POST.get('message')
+    
+    if message:
+        TicketMessage.objects.create(
+            ticket=ticket,
+            user=request.user,
+            message=message
+        )
+        
+        # Update ticket status if needed
+        if ticket.status == 'closed':
+            ticket.status = 'pending'
+            ticket.save()
+            
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Message content is required'})
+
+@login_required
+@require_POST
+def close_ticket(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id, user=request.user)
+    ticket.status = 'closed'
+    ticket.save()
+    return JsonResponse({'status': 'success'})
