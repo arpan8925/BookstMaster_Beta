@@ -1,0 +1,68 @@
+<!-- View Transaction Modal -->
+<div class="modal fade" id="viewTransactionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Transaction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6>Transaction Information</h6>
+                        <p><strong>Transaction ID:</strong> <span id="view_transaction_id"></span></p>
+                        <p><strong>Amount:</strong> <span id="view_amount"></span></p>
+                        <p><strong>Status:</strong> <span id="view_status"></span></p>
+                        <p><strong>Created:</strong> <span id="view_created"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>User Information</h6>
+                        <p><strong>Email:</strong> <span id="view_user_email"></span></p>
+                        <p><strong>Balance:</strong> <span id="view_balance"></span></p>
+                    </div>
+                    <div class="col-12">
+                        <h6>Payment Details</h6>
+                        <p><strong>Payment Method:</strong> <span id="view_payment_method"></span></p>
+                        <p><strong>External Transaction ID:</strong> <span id="view_transaction_id_ext"></span></p>
+                        <p><strong>Transaction Fee:</strong> <span id="view_fee"></span></p>
+                        <p><strong>Note:</strong> <span id="view_note"></span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div id="view_transaction_actions">
+                    <!-- Dynamic buttons will be added here based on transaction status -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Modal -->
+<div class="modal fade" id="dateRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Date Range</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="dateRangeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" name="end_date" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> 

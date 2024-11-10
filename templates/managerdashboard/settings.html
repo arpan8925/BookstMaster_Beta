@@ -1,0 +1,313 @@
+{% extends 'managerdashboard/base_dashboard.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Settings</h1>
+        <button class="btn btn-primary" onclick="saveAllSettings()">
+            <i class="bi bi-save"></i> Save Changes
+        </button>
+    </div>
+
+    <div class="row">
+        <!-- Settings Navigation -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="list-group list-group-flush rounded-2" role="tablist">
+                    <a class="list-group-item list-group-item-action active" data-bs-toggle="list" href="#general-settings">
+                        <i class="bi bi-gear me-2"></i>General Settings
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#website-settings">
+                        <i class="bi bi-globe me-2"></i>Website Settings
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#email-settings">
+                        <i class="bi bi-envelope me-2"></i>Email Settings
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#payment-settings">
+                        <i class="bi bi-credit-card me-2"></i>Payment Settings
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#api-settings">
+                        <i class="bi bi-code-slash me-2"></i>API Settings
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-bs-toggle="list" href="#notification-settings">
+                        <i class="bi bi-bell me-2"></i>Notification Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Content -->
+        <div class="col-md-9">
+            <div class="tab-content">
+                <!-- General Settings -->
+                <div class="tab-pane fade show active" id="general-settings">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">General Settings</h5>
+                            <form id="generalSettingsForm">
+                                <div class="mb-4">
+                                    <label class="form-label">Website Name</label>
+                                    <input type="text" class="form-control" name="website_name" value="{{ settings.website_name }}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Website Description</label>
+                                    <textarea class="form-control" name="website_description" rows="3">{{ settings.website_description }}</textarea>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Website Keywords</label>
+                                    <input type="text" class="form-control" name="website_keywords" value="{{ settings.website_keywords }}">
+                                    <small class="text-muted">Separate keywords with commas</small>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Timezone</label>
+                                    <select class="form-select" name="timezone">
+                                        <option value="UTC" {% if settings.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                                        <option value="America/New_York" {% if settings.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time</option>
+                                        <!-- Add more timezone options -->
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="maintenance_mode" {% if settings.maintenance_mode %}checked{% endif %}>
+                                        <label class="form-check-label">Maintenance Mode</label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">When enabled, only administrators can access the site</small>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Website Settings -->
+                <div class="tab-pane fade" id="website-settings">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Website Settings</h5>
+                            <form id="websiteSettingsForm">
+                                <div class="mb-4">
+                                    <label class="form-label">Website Logo</label>
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <img src="{{ settings.logo_url|default:'/static/images/default-logo.png' }}" alt="Logo" height="40">
+                                        <button type="button" class="btn btn-outline-primary btn-sm">Change Logo</button>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Favicon</label>
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <img src="{{ settings.favicon_url|default:'/static/images/favicon.ico' }}" alt="Favicon" height="32">
+                                        <button type="button" class="btn btn-outline-primary btn-sm">Change Favicon</button>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Theme Color</label>
+                                    <input type="color" class="form-control form-control-color" name="theme_color" value="{{ settings.theme_color|default:'#0d6efd' }}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Custom CSS</label>
+                                    <textarea class="form-control font-monospace" name="custom_css" rows="5">{{ settings.custom_css }}</textarea>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Settings -->
+                <div class="tab-pane fade" id="email-settings">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Email Settings</h5>
+                            <form id="emailSettingsForm">
+                                <div class="mb-4">
+                                    <label class="form-label">SMTP Host</label>
+                                    <input type="text" class="form-control" name="smtp_host" value="{{ settings.smtp_host }}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">SMTP Port</label>
+                                    <input type="number" class="form-control" name="smtp_port" value="{{ settings.smtp_port }}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">SMTP Username</label>
+                                    <input type="text" class="form-control" name="smtp_username" value="{{ settings.smtp_username }}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">SMTP Password</label>
+                                    <input type="password" class="form-control" name="smtp_password" value="{{ settings.smtp_password }}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">From Email</label>
+                                    <input type="email" class="form-control" name="from_email" value="{{ settings.from_email }}">
+                                </div>
+                                <div class="mb-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="smtp_ssl" {% if settings.smtp_ssl %}checked{% endif %}>
+                                        <label class="form-check-label">Use SSL</label>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary" onclick="testEmailSettings()">
+                                    <i class="bi bi-envelope-check me-2"></i>Test Email Settings
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Settings -->
+                <div class="tab-pane fade" id="payment-settings">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Payment Settings</h5>
+                            <form id="paymentSettingsForm">
+                                <div class="mb-4">
+                                    <label class="form-label">Currency</label>
+                                    <select class="form-select" name="currency">
+                                        <option value="USD" {% if settings.currency == 'USD' %}selected{% endif %}>USD</option>
+                                        <option value="EUR" {% if settings.currency == 'EUR' %}selected{% endif %}>EUR</option>
+                                        <option value="GBP" {% if settings.currency == 'GBP' %}selected{% endif %}>GBP</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Minimum Deposit</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" name="min_deposit" value="{{ settings.min_deposit }}">
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">PayPal Settings</label>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text">Client ID</span>
+                                        <input type="text" class="form-control" name="paypal_client_id" value="{{ settings.paypal_client_id }}">
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text">Secret</span>
+                                        <input type="password" class="form-control" name="paypal_secret" value="{{ settings.paypal_secret }}">
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="paypal_sandbox" {% if settings.paypal_sandbox %}checked{% endif %}>
+                                        <label class="form-check-label">PayPal Sandbox Mode</label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Settings -->
+                <div class="tab-pane fade" id="api-settings">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">API Settings</h5>
+                            <form id="apiSettingsForm">
+                                <div class="mb-4">
+                                    <label class="form-label">API Key</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" value="{{ settings.api_key }}" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="regenerateApiKey()">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyApiKey()">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="api_enabled" {% if settings.api_enabled %}checked{% endif %}>
+                                        <label class="form-check-label">Enable API Access</label>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Allowed IPs (one per line)</label>
+                                    <textarea class="form-control" name="api_allowed_ips" rows="3">{{ settings.api_allowed_ips }}</textarea>
+                                    <small class="text-muted">Leave empty to allow all IPs</small>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notification Settings -->
+                <div class="tab-pane fade" id="notification-settings">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Notification Settings</h5>
+                            <form id="notificationSettingsForm">
+                                <div class="mb-4">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" name="notify_new_order" {% if settings.notify_new_order %}checked{% endif %}>
+                                        <label class="form-check-label">New Order Notifications</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" name="notify_low_balance" {% if settings.notify_low_balance %}checked{% endif %}>
+                                        <label class="form-check-label">Low Balance Alerts</label>
+                                    </div>
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" name="notify_new_ticket" {% if settings.notify_new_ticket %}checked{% endif %}>
+                                        <label class="form-check-label">New Support Ticket Notifications</label>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label">Low Balance Threshold</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" name="low_balance_threshold" value="{{ settings.low_balance_threshold }}">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include settings handlers JavaScript -->
+<script src="{% static 'js/settings_handlers.js' %}"></script>
+
+<style>
+.list-group-item {
+    border: none;
+    padding: 0.8rem 1rem;
+    color: #6c757d;
+    background: transparent;
+}
+
+.list-group-item:hover {
+    color: #000;
+    background: rgba(13, 110, 253, 0.1);
+}
+
+.list-group-item.active {
+    color: #0d6efd;
+    background: rgba(13, 110, 253, 0.1);
+    font-weight: 500;
+}
+
+.list-group-item i {
+    width: 1.2rem;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.tab-pane {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endblock %} 

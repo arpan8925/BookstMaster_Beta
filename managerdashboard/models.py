@@ -36,9 +36,19 @@ class ProviderTransaction(models.Model):
         return f"{self.type} - ${self.amount} - {self.provider.name}"
 
 class Transaction(models.Model):
+    STATUS_CHOICES = [
+        ('paid', 'Paid'),
+        ('waiting', 'Waiting'),
+        ('cancelled', 'Cancelled')
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     type = models.CharField(max_length=10, choices=[('credit', 'Credit'), ('debit', 'Debit')])
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting')
+    payment_method = models.CharField(max_length=50, null=True, blank=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
+    fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='transactions_added')
     created_at = models.DateTimeField(auto_now_add=True)

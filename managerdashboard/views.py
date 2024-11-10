@@ -690,13 +690,209 @@ def add_provider_funds(request):
 
 def payments(request):
 
+    # Get search query and filters
+
+    search_query = request.GET.get('search', '')
+
+    status_filter = request.GET.get('status', '')
+
+    
+
+    # Base queryset
+
+    transactions = Transaction.objects.select_related('user', 'added_by').all().order_by('-created_at')
+
+    
+
+    # Apply filters
+
+    if search_query:
+
+        transactions = transactions.filter(
+
+            Q(transaction_id__icontains=search_query) |
+
+            Q(user__email__icontains=search_query) |
+
+            Q(user__username__icontains=search_query)
+
+        )
+
+    
+
+    if status_filter and status_filter != 'all':
+
+        transactions = transactions.filter(status=status_filter)
+
+    
+
+    # Get counts for stats
+
+    total_count = Transaction.objects.count()
+
+    paid_count = Transaction.objects.filter(status='paid').count()
+
+    waiting_count = Transaction.objects.filter(status='waiting').count()
+
+    cancelled_count = Transaction.objects.filter(status='cancelled').count()
+
+    
+
+    # Pagination
+
+    paginator = Paginator(transactions, 10)  # Show 10 transactions per page
+
+    page = request.GET.get('page')
+
+    transactions_page = paginator.get_page(page)
+
+    
+
     context = {
 
         'active_tab': 'payments',
 
+        'transactions': transactions_page,
+
+        'page_obj': transactions_page,
+
+        'total_count': total_count,
+
+        'paid_count': paid_count,
+
+        'waiting_count': waiting_count,
+
+        'cancelled_count': cancelled_count,
+
+        'search_query': search_query,
+
+        'status_filter': status_filter
+
     }
 
     return render(request, 'managerdashboard/payments.html', context)
+
+
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+
+def approve_transaction(request, transaction_id):
+
+    if request.method == 'POST':
+
+        try:
+
+            transaction = Transaction.objects.get(id=transaction_id)
+
+            
+
+            # Only allow approving waiting transactions
+
+            if transaction.status != 'waiting':
+
+                return JsonResponse({
+
+                    'error': 'Only waiting transactions can be approved'
+
+                }, status=400)
+
+            
+
+            # Update transaction status
+
+            transaction.status = 'paid'
+
+            transaction.save()
+
+            
+
+            # Add funds to user's balance
+
+            user = transaction.user
+
+            user.balance += transaction.amount
+
+            user.save()
+
+            
+
+            return JsonResponse({
+
+                'status': 'success',
+
+                'message': 'Transaction approved successfully'
+
+            })
+
+            
+
+        except Transaction.DoesNotExist:
+
+            return JsonResponse({'error': 'Transaction not found'}, status=404)
+
+        except Exception as e:
+
+            return JsonResponse({'error': str(e)}, status=400)
+
+            
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+
+def cancel_transaction(request, transaction_id):
+
+    if request.method == 'POST':
+
+        try:
+
+            transaction = Transaction.objects.get(id=transaction_id)
+
+            
+
+            # Only allow cancelling waiting transactions
+
+            if transaction.status != 'waiting':
+
+                return JsonResponse({
+
+                    'error': 'Only waiting transactions can be cancelled'
+
+                }, status=400)
+
+            
+
+            # Update transaction status
+
+            transaction.status = 'cancelled'
+
+            transaction.save()
+
+            
+
+            return JsonResponse({
+
+                'status': 'success',
+
+                'message': 'Transaction cancelled successfully'
+
+            })
+
+            
+
+        except Transaction.DoesNotExist:
+
+            return JsonResponse({'error': 'Transaction not found'}, status=404)
+
+        except Exception as e:
+
+            return JsonResponse({'error': str(e)}, status=400)
+
+            
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 
