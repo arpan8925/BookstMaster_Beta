@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
+import secrets
 
 class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
@@ -23,9 +24,11 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
 
     def generate_api_key(self):
-        import secrets
-        self.api_key = secrets.token_urlsafe(32)
-        self.save()
+        """Generate a new API key"""
+        new_key = secrets.token_urlsafe(32)
+        self.api_key = new_key
+        self.save(update_fields=['api_key'])
+        return new_key
 
     def __str__(self):
         return self.username

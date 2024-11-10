@@ -6,26 +6,28 @@
 <!-- Custom Alert Section -->
 {% if show_success_alert %}
 <div class="alert alert-success alert-dismissible fade show" role="alert">
-    Profile updated successfully!
+    {{ success_message|default:"Profile updated successfully!" }}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
 
-{% if show_additional_success_alert %}
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    Additional information updated successfully!
+{% if show_error_alert %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ error_message|default:"An error occurred!" }}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
 
-<!-- Keep Django messages only for password updates and errors -->
+<!-- Keep Django messages only for other notifications -->
 {% if messages %}
 <div class="messages mb-4">
     {% for message in messages %}
-    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+        {% if 'api key' not in message.message|lower %}  <!-- Skip API key related messages -->
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
     {% endfor %}
 </div>
 {% endif %}
@@ -166,62 +168,109 @@
         <div class="mb-3">
             <label class="form-label">API Key</label>
             <div class="input-group">
-                <input type="text" class="form-control" value="{{ user.api_key }}" id="apiKey" readonly>
+                <input type="password" class="form-control" id="apiKeyField" value="{{ user.api_key }}" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="toggleApiKeyVisibility()">
+                    <i class="bi bi-eye" id="eyeIcon"></i>
+                </button>
                 <button class="btn btn-outline-secondary" type="button" onclick="copyApiKey()">
-                    <i class="bi bi-clipboard"></i>
+                    <i class="bi bi-clipboard" id="clipboardIcon"></i>
                 </button>
             </div>
+            <div id="apiKeyMessage" class="text-success mt-2" style="display: none;"></div>
         </div>
-        <button class="btn btn-danger" onclick="generateNewApiKey()">Generate new</button>
+        
+        <form method="post" action="{% url 'generate_api_key' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to generate a new API key? Your old key will stop working!');">
+                Generate new
+            </button>
+        </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- Add this script right after the card -->
 <script>
-function copyApiKey() {
-    const apiKeyInput = document.getElementById('apiKey');
-    apiKeyInput.select();
-    document.execCommand('copy');
+// Function to toggle API key visibility
+function toggleApiKeyVisibility() {
+    const apiKeyField = document.getElementById('apiKeyField');
+    const eyeIcon = document.getElementById('eyeIcon');
     
-    // Show alert using Django messages system
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-    alertDiv.innerHTML = `
-        API key copied to clipboard!
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    document.querySelector('.messages').appendChild(alertDiv);
-    
-    setTimeout(() => alertDiv.remove(), 3000);
-}
-
-function generateNewApiKey() {
-    if (confirm('Are you sure you want to generate a new API key? Your old key will stop working!')) {
-        fetch('{% url "generate_api_key" %}', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                document.getElementById('apiKey').value = data.api_key;
-                
-                // Show alert using Django messages system
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    New API key generated successfully!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                document.querySelector('.messages').appendChild(alertDiv);
-                
-                setTimeout(() => alertDiv.remove(), 3000);
-            }
-        });
+    if (apiKeyField.type === 'password') {
+        apiKeyField.type = 'text';
+        eyeIcon.classList.remove('bi-eye');
+        eyeIcon.classList.add('bi-eye-slash');
+    } else {
+        apiKeyField.type = 'password';
+        eyeIcon.classList.remove('bi-eye-slash');
+        eyeIcon.classList.add('bi-eye');
     }
 }
+
+// Function to copy API key
+function copyApiKey() {
+    const apiKeyField = document.getElementById('apiKeyField');
+    const messageDiv = document.getElementById('apiKeyMessage');
+    const clipboardIcon = document.getElementById('clipboardIcon');
+    
+    // Store current type and make visible temporarily
+    const currentType = apiKeyField.type;
+    apiKeyField.type = 'text';
+    
+    // Select and copy
+    apiKeyField.select();
+    
+    try {
+        // Try to copy
+        document.execCommand('copy');
+        
+        // Show success message
+        messageDiv.textContent = 'API key copied to clipboard!';
+        messageDiv.style.display = 'block';
+        
+        // Change icon temporarily
+        clipboardIcon.classList.remove('bi-clipboard');
+        clipboardIcon.classList.add('bi-clipboard-check');
+        
+        // Reset after 2 seconds
+        setTimeout(() => {
+            messageDiv.style.display = 'none';
+            clipboardIcon.classList.remove('bi-clipboard-check');
+            clipboardIcon.classList.add('bi-clipboard');
+        }, 2000);
+    } catch (err) {
+        // Show error message
+        messageDiv.textContent = 'Failed to copy API key';
+        messageDiv.className = 'text-danger mt-2';
+        messageDiv.style.display = 'block';
+    }
+    
+    // Restore type
+    apiKeyField.type = currentType;
+    
+    // Clear selection
+    window.getSelection().removeAllRanges();
+}
+
+// Add these styles
+document.head.insertAdjacentHTML('beforeend', `
+    <style>
+        #apiKeyField {
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        
+        #apiKeyField[type="password"] {
+            letter-spacing: 3px;
+        }
+        
+        .input-group .btn-outline-secondary {
+            border-color: #ced4da;
+        }
+        
+        .input-group .btn-outline-secondary:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+`);
 </script>
-{% endblock %} 
+{% endblock %}

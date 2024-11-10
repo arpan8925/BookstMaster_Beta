@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.contrib.auth import update_session_auth_hash
+import secrets
 
 @login_required
 def ticket_list(request):
@@ -328,8 +329,28 @@ def close_ticket(request, ticket_id):
     return JsonResponse({'status': 'success'})
 
 @login_required
-def generate_new_api_key(request):
+def generate_api_key(request):
     if request.method == 'POST':
-        request.user.generate_api_key()
-        return JsonResponse({'status': 'success', 'api_key': request.user.api_key})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+        try:
+            # Generate new API key
+            new_key = secrets.token_urlsafe(32)
+            request.user.api_key = new_key
+            request.user.save(update_fields=['api_key'])
+            
+            # Return to profile page with custom alert
+            # Removed the messages.success() call to prevent double alerts
+            return render(request, 'user_dashboard/profile.html', {
+                'active_tab': 'profile',
+                'show_success_alert': True,  # This will trigger our custom alert
+                'success_message': 'New API key generated successfully!'  # Custom message
+            })
+            
+        except Exception as e:
+            print(f"Error generating API key: {str(e)}")  # For debugging
+            return render(request, 'user_dashboard/profile.html', {
+                'active_tab': 'profile',
+                'show_error_alert': True,
+                'error_message': 'Failed to generate new API key'
+            })
+    
+    return redirect('user_profile')
