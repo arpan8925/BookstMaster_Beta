@@ -1294,31 +1294,38 @@ def edit_service(request, service_id):
     if request.method == 'POST':
         try:
             service = Service.objects.get(id=service_id)
-            data = request.POST
+            
+            # Get the category instance (don't create if doesn't exist)
+            try:
+                category = ServiceCategory.objects.get(name=request.POST.get('category'))
+            except ServiceCategory.DoesNotExist:
+                return JsonResponse({
+                    'error': f'Category "{request.POST.get("category")}" does not exist'
+                }, status=400)
             
             # Create update record
             ServiceUpdate.objects.create(
                 service=service,
                 old_rate=service.rate,
-                new_rate=data.get('rate'),
+                new_rate=request.POST.get('rate'),
                 old_min=service.min_order,
-                new_min=data.get('min_order'),
+                new_min=request.POST.get('min_order'),
                 old_max=service.max_order,
-                new_max=data.get('max_order'),
+                new_max=request.POST.get('max_order'),
                 old_status=service.status,
-                new_status='active' if data.get('is_active') == 'on' else 'inactive',
+                new_status='active' if request.POST.get('is_active') == 'on' else 'inactive',
                 updated_by=request.user
             )
             
             # Update service
-            service.name = data.get('name')
-            service.category = data.get('category')
-            service.rate = data.get('rate')
-            service.min_order = data.get('min_order')
-            service.max_order = data.get('max_order')
-            service.description = data.get('description')
-            service.status = 'active' if data.get('is_active') == 'on' else 'inactive'
-            service.is_drip_feed = data.get('is_drip_feed') == 'on'
+            service.name = request.POST.get('name')
+            service.category = category  # Assign the category instance
+            service.rate = request.POST.get('rate')
+            service.min_order = request.POST.get('min_order')
+            service.max_order = request.POST.get('max_order')
+            service.description = request.POST.get('description')
+            service.status = 'active' if request.POST.get('is_active') == 'on' else 'inactive'
+            service.is_drip_feed = request.POST.get('is_drip_feed') == 'on'
             service.save()
             
             return JsonResponse({
