@@ -108,6 +108,10 @@ urlpatterns = [
 
     path('settings/payment-methods/<int:method_id>/delete/', views.delete_payment_method, name='delete_payment_method'),
 
+    path('settings/payment-methods/<int:method_id>/get/', views.get_payment_method, name='get_payment_method'),
+
+    path('settings/payment-methods/<int:method_id>/edit/', views.edit_payment_method, name='edit_payment_method'),
+
 ]
 
 

@@ -90,4 +90,65 @@ function deletePaymentMethod(id) {
             alert('Error deleting payment method');
         });
     }
-} 
+}
+
+function editPaymentMethod(id) {
+    console.log('Editing payment method:', id);
+    
+    // Fetch payment method details
+    fetch(`/manager/settings/payment-methods/${id}/get/`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Payment method data:', data);
+            
+            // Populate the edit form
+            document.getElementById('edit_method_id').value = id;
+            document.getElementById('edit_name').value = data.name;
+            document.getElementById('edit_type').value = data.type;
+            document.getElementById('edit_min_amount').value = data.min_amount;
+            document.getElementById('edit_max_amount').value = data.max_amount;
+            document.getElementById('edit_fee_type').value = data.fee_type;
+            document.getElementById('edit_fee_amount').value = data.fee_percentage;
+            document.getElementById('edit_is_active').checked = data.is_active;
+            document.getElementById('edit_test_mode').checked = data.test_mode;
+            
+            // Show the modal
+            new bootstrap.Modal(document.getElementById('editPaymentMethodModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error fetching payment method details');
+        });
+}
+
+// Add edit form submit handler
+document.getElementById('editPaymentMethodForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const methodId = formData.get('method_id');
+    
+    console.log('Submitting edit form for method:', methodId);
+    console.log('Form data:', Object.fromEntries(formData));
+    
+    fetch(`/manager/settings/payment-methods/${methodId}/edit/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Response:', data);
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert(data.message || 'Error updating payment method');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating payment method');
+    });
+}); 

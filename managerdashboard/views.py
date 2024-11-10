@@ -1880,6 +1880,68 @@ def delete_payment_method(request, method_id):
         'message': 'Invalid request method'
     }, status=405)
 
+@permission_required('authentication.is_manager', login_url='manager_login')
+def get_payment_method(request, method_id):
+    try:
+        method = PaymentMethod.objects.get(id=method_id)
+        data = {
+            'name': method.name,
+            'type': method.type,
+            'min_amount': str(method.min_amount),
+            'max_amount': str(method.max_amount),
+            'fee_type': method.fee_type,
+            'fee_percentage': str(method.fee_percentage),
+            'fee_fixed': str(method.fee_fixed),
+            'is_active': method.is_active,
+            'test_mode': method.test_mode
+        }
+        return JsonResponse(data)
+    except PaymentMethod.DoesNotExist:
+        return JsonResponse({'error': 'Payment method not found'}, status=404)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def edit_payment_method(request, method_id):
+    if request.method == 'POST':
+        try:
+            method = PaymentMethod.objects.get(id=method_id)
+            
+            # Update fields
+            method.name = request.POST.get('name')
+            method.type = request.POST.get('type')
+            method.min_amount = Decimal(request.POST.get('min_amount'))
+            method.max_amount = Decimal(request.POST.get('max_amount'))
+            method.fee_type = request.POST.get('fee_type')
+            method.fee_percentage = Decimal(request.POST.get('fee_amount', '0'))
+            method.is_active = request.POST.get('is_active') == 'on'
+            method.test_mode = request.POST.get('test_mode') == 'on'
+            
+            # Save changes
+            method.save()
+            
+            logger.info(f"Payment method {method.name} updated successfully")
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Payment method updated successfully'
+            })
+            
+        except PaymentMethod.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Payment method not found'
+            }, status=404)
+        except Exception as e:
+            logger.error(f"Error updating payment method: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
 
 
 
