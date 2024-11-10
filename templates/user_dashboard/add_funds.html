@@ -7,48 +7,153 @@
             <h5 class="mb-0">Add Funds</h5>
         </div>
         <div class="card-body">
+            <!-- Dynamic Payment Method Tabs -->
             <ul class="nav nav-tabs mb-4">
+                {% for method in payment_methods %}
                 <li class="nav-item">
-                    <a class="nav-link active" href="#perfectmoney" data-bs-toggle="tab">
-                        <i class="bi bi-p-circle"></i> Perfectmoney
+                    <a class="nav-link {% if forloop.first %}active{% endif %}" 
+                       href="#method-{{ method.id }}" 
+                       data-bs-toggle="tab">
+                        {% if method.icon %}
+                            <img src="{{ method.icon.url }}" alt="{{ method.name }}" height="20" class="me-1">
+                        {% else %}
+                            <i class="bi bi-wallet2"></i>
+                        {% endif %}
+                        {{ method.name }}
                     </a>
                 </li>
+                {% empty %}
                 <li class="nav-item">
-                    <a class="nav-link" href="#bkash" data-bs-toggle="tab">
-                        <i class="bi bi-wallet2"></i> Bkash
-                    </a>
+                    <span class="nav-link disabled">No payment methods available</span>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#manual" data-bs-toggle="tab">
-                        <i class="bi bi-cash"></i> Manual Payment
-                    </a>
-                </li>
+                {% endfor %}
             </ul>
 
+            <!-- Dynamic Payment Method Content -->
             <div class="tab-content">
-                <div class="tab-pane fade show active" id="perfectmoney">
-                    <form method="post" action="">
+                {% for method in payment_methods %}
+                <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                     id="method-{{ method.id }}">
+                    <form method="post" action="{% url 'process_payment' method.id %}">
                         {% csrf_token %}
                         <div class="mb-3">
                             <label class="form-label">Amount (USD)</label>
-                            <input type="number" class="form-control" name="amount" min="1" step="0.01" required>
+                            <input type="number" 
+                                   class="form-control" 
+                                   name="amount" 
+                                   min="{{ method.min_amount }}" 
+                                   max="{{ method.max_amount }}" 
+                                   step="0.01" 
+                                   required>
+                            <small class="text-muted">
+                                Min: ${{ method.min_amount }} - Max: ${{ method.max_amount }}
+                            </small>
                         </div>
+
                         <div class="alert alert-info">
                             <ul class="mb-0">
-                                <li>Transaction fee: 2%</li>
+                                {% if method.fee_type == 'percentage' %}
+                                    <li>Transaction fee: {{ method.fee_percentage }}%</li>
+                                {% elif method.fee_type == 'fixed' %}
+                                    <li>Transaction fee: ${{ method.fee_fixed }}</li>
+                                {% else %}
+                                    <li>Transaction fee: {{ method.fee_percentage }}% + ${{ method.fee_fixed }}</li>
+                                {% endif %}
                                 <li>THIS PAYMENT IS FOR SERVICES AND IT IS NOT REFUNDABLE</li>
                             </ul>
                         </div>
+
                         <div class="form-check mb-3">
                             <input type="checkbox" class="form-check-input" required>
-                            <label class="form-check-label">Yes, I understand after the funds added i will not ask fraudulent dispute or charge-back!</label>
+                            <label class="form-check-label">
+                                Yes, I understand after the funds added i will not ask fraudulent dispute or charge-back!
+                            </label>
                         </div>
+
                         <button type="submit" class="btn btn-primary">Pay Now</button>
                     </form>
                 </div>
-                <!-- Add other payment method tabs here -->
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+
+<script>
+// Add fee calculation functionality
+document.querySelectorAll('input[name="amount"]').forEach(input => {
+    input.addEventListener('input', function() {
+        const form = this.closest('form');
+        const methodId = form.closest('.tab-pane').id.split('-')[1];
+        const method = {{ payment_methods|safe }}.find(m => m.id == methodId);
+        
+        let amount = parseFloat(this.value) || 0;
+        let fee = 0;
+        
+        // Calculate fee based on type
+        if (method.fee_type === 'percentage') {
+            fee = amount * (method.fee_percentage / 100);
+        } else if (method.fee_type === 'fixed') {
+            fee = method.fee_fixed;
+        } else {
+            fee = (amount * (method.fee_percentage / 100)) + method.fee_fixed;
+        }
+        
+        // Update fee display if it exists
+        const feeDisplay = form.querySelector('.fee-amount');
+        if (feeDisplay) {
+            feeDisplay.textContent = $${fee.toFixed(2)};
+        }
+        
+        // Update total amount if it exists
+        const totalDisplay = form.querySelector('.total-amount');
+        if (totalDisplay) {
+            totalDisplay.textContent = $${(amount + fee).toFixed(2)};
+        }
+    });
+});
+</script>
+
+<style>
+.nav-tabs .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-tabs .nav-link img {
+    max-height: 20px;
+    width: auto;
+}
+
+.alert ul {
+    padding-left: 1.2rem;
+}
+
+.form-check-label {
+    font-size: 0.9rem;
+}
+
+.nav-tabs .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6c757d; /* Color for inactive tabs */
+    background-color: #f8f9fa; /* Light background for inactive tabs */
+    border: 1px solid #dee2e6;
+}
+
+.nav-tabs .nav-link.active {
+    color: #fff;
+    background-color: #0d6efd; /* Keep the active tab styling */
+    border-color: #0d6efd;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #495057;
+    background-color: #e9ecef; /* Hover effect for inactive tabs */
+}
+
+
+</style>
+{% endblock %}
