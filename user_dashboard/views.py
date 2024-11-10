@@ -8,6 +8,8 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.contrib.auth import update_session_auth_hash
 import secrets
+from managerdashboard.models import PaymentMethod
+from decimal import Decimal
 
 @login_required
 def ticket_list(request):
@@ -220,13 +222,12 @@ def api_documentation(request):
 
 @login_required
 def add_funds(request):
+    # Get all active payment methods
+    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('name')
+    
     context = {
         'active_tab': 'add_funds',
-        'payment_methods': [
-            {'id': 'perfectmoney', 'name': 'Perfectmoney'},
-            {'id': 'bkash', 'name': 'Bkash'},
-            {'id': 'manual', 'name': 'Manual Payment'},
-        ]
+        'payment_methods': payment_methods
     }
     return render(request, 'user_dashboard/add_funds.html', context)
 
@@ -354,3 +355,44 @@ def generate_api_key(request):
             })
     
     return redirect('user_profile')
+
+@login_required
+def process_payment(request, method_id):
+    if request.method == 'POST':
+        try:
+            method = PaymentMethod.objects.get(id=method_id, is_active=True)
+            amount = Decimal(request.POST.get('amount', '0'))
+            
+            # Validate amount
+            if amount < method.min_amount or amount > method.max_amount:
+                messages.error(request, 'Invalid amount')
+                return redirect('add_funds')
+            
+            # Calculate fee
+            fee = Decimal('0')
+            if method.fee_type == 'percentage':
+                fee = amount * (method.fee_percentage / Decimal('100'))
+            elif method.fee_type == 'fixed':
+                fee = method.fee_fixed
+            else:
+                fee = (amount * (method.fee_percentage / Decimal('100'))) + method.fee_fixed
+            
+            # Create transaction record
+            transaction = Transaction.objects.create(
+                user=request.user,
+                amount=amount,
+                fee=fee,
+                payment_method=method.name,
+                status='waiting'
+            )
+            
+            # Redirect to appropriate payment processor
+            # This is just a placeholder - implement actual payment processing
+            return redirect('transaction_logs')
+            
+        except PaymentMethod.DoesNotExist:
+            messages.error(request, 'Invalid payment method')
+        except Exception as e:
+            messages.error(request, str(e))
+    
+    return redirect('add_funds')

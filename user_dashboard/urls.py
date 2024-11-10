@@ -21,4 +21,5 @@ urlpatterns = [
     path('api-docs/', views.api_documentation, name='api_documentation'),
     path('add-funds/', views.add_funds, name='add_funds'),
     path('transaction-logs/', views.transaction_logs, name='transaction_logs'),
+    path('process-payment/<int:method_id>/', views.process_payment, name='process_payment'),
 ]
