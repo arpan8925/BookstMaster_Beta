@@ -164,7 +164,6 @@
                                 </button>
                             </div>
 
-                            <!-- Payment Methods Table -->
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
                                     <thead>
@@ -179,62 +178,56 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- PayPal -->
+                                        {% for method in payment_methods %}
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="{% static 'images/paypal.png' %}" alt="PayPal" height="30" class="me-2">
-                                                    <span>PayPal</span>
+                                                    {% if method.icon %}
+                                                        <img src="{{ method.icon.url }}" alt="{{ method.name }}" height="30" class="me-2">
+                                                    {% endif %}
+                                                    <span>{{ method.name }}</span>
                                                 </div>
                                             </td>
-                                            <td>Automatic</td>
-                                            <td>$10.00</td>
-                                            <td>$1000.00</td>
-                                            <td>2.5%</td>
+                                            <td>{{ method.type|title }}</td>
+                                            <td>${{ method.min_amount }}</td>
+                                            <td>${{ method.max_amount }}</td>
+                                            <td>
+                                                {% if method.fee_type == 'percentage' %}
+                                                    {{ method.fee_percentage }}%
+                                                {% elif method.fee_type == 'fixed' %}
+                                                    ${{ method.fee_fixed }}
+                                                {% else %}
+                                                    {{ method.fee_percentage }}% + ${{ method.fee_fixed }}
+                                                {% endif %}
+                                            </td>
                                             <td>
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" checked>
+                                                    <input class="form-check-input" type="checkbox" 
+                                                           {% if method.is_active %}checked{% endif %}
+                                                           onchange="togglePaymentMethod({{ method.id }})">
                                                 </div>
                                             </td>
                                             <td>
                                                 <div class="btn-group">
-                                                    <button class="btn btn-sm btn-outline-primary" onclick="editPaymentMethod('paypal')">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editPaymentMethod({{ method.id }})">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="deletePaymentMethod('paypal')">
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="deletePaymentMethod({{ method.id }})">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                        <!-- Stripe -->
+                                        {% empty %}
                                         <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center">
-                                                    <img src="{% static 'images/stripe.png' %}" alt="Stripe" height="30" class="me-2">
-                                                    <span>Stripe</span>
-                                                </div>
-                                            </td>
-                                            <td>Automatic</td>
-                                            <td>$5.00</td>
-                                            <td>$5000.00</td>
-                                            <td>2.9% + $0.30</td>
-                                            <td>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" checked>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="btn-group">
-                                                    <button class="btn btn-sm btn-outline-primary" onclick="editPaymentMethod('stripe')">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="deletePaymentMethod('stripe')">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
+                                            <td colspan="7" class="text-center py-4">
+                                                <div class="text-muted">
+                                                    <i class="bi bi-credit-card fs-2"></i>
+                                                    <p class="mt-2">No payment methods found</p>
                                                 </div>
                                             </td>
                                         </tr>
+                                        {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
@@ -251,6 +244,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <form id="addPaymentMethodForm">
+                                {% csrf_token %}
                                 <div class="modal-body">
                                     <div class="row g-3">
                                         <!-- Basic Information -->
@@ -507,4 +501,7 @@ function deletePaymentMethod(id) {
     }
 }
 </script>
+
+<!-- Add this before the closing body tag -->
+<script src="{% static 'js/payment_handlers.js' %}"></script>
 {% endblock %} 

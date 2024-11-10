@@ -24,13 +24,17 @@ from .models import (
     ProviderTransaction,
     Service,
     ServiceCategory,
-    ServiceUpdate
+    ServiceUpdate,
+    PaymentMethod
 )
 
 import requests
 from django.utils import timezone
 
 import json
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 
@@ -900,9 +904,13 @@ def cancel_transaction(request, transaction_id):
 
 def settings(request):
 
+    payment_methods = PaymentMethod.objects.all()
+
     context = {
 
         'active_tab': 'settings',
+
+        'payment_methods': payment_methods
 
     }
 
@@ -1761,6 +1769,116 @@ def get_service_info(request, service_id):
         return JsonResponse(data)
     except Service.DoesNotExist:
         return JsonResponse({'error': 'Service not found'}, status=404)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def add_payment_method(request):
+    if request.method == 'POST':
+        try:
+            # Log the incoming request data
+            logger.info(f"Received payment method data: {request.POST}")
+            
+            # Validate required fields
+            required_fields = ['name', 'type', 'min_amount', 'max_amount', 'fee_type', 'fee_amount']
+            for field in required_fields:
+                if not request.POST.get(field):
+                    raise ValueError(f"Missing required field: {field}")
+
+            # Create payment method
+            payment_method = PaymentMethod.objects.create(
+                name=request.POST.get('name'),
+                type=request.POST.get('type'),
+                min_amount=Decimal(request.POST.get('min_amount')),
+                max_amount=Decimal(request.POST.get('max_amount')),
+                fee_type=request.POST.get('fee_type'),
+                fee_percentage=Decimal(request.POST.get('fee_amount', '0')),
+                is_active=request.POST.get('is_active') == 'on',
+                test_mode=request.POST.get('test_mode') == 'on'
+            )
+            
+            # Handle automatic payment method credentials
+            if request.POST.get('type') == 'automatic':
+                payment_method.client_id = request.POST.get('client_id')
+                payment_method.client_secret = request.POST.get('client_secret')
+                payment_method.save()
+
+            logger.info(f"Successfully created payment method: {payment_method.name}")
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Payment method added successfully',
+                'payment_method': {
+                    'id': payment_method.id,
+                    'name': payment_method.name,
+                    'type': payment_method.type
+                }
+            })
+            
+        except ValueError as e:
+            logger.error(f"Validation error: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+            
+        except Exception as e:
+            logger.error(f"Error creating payment method: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error creating payment method: {str(e)}'
+            }, status=400)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def toggle_payment_method(request, method_id):
+    if request.method == 'POST':
+        try:
+            method = PaymentMethod.objects.get(id=method_id)
+            method.is_active = not method.is_active
+            method.save()
+            
+            logger.info(f"Payment method {method.name} status toggled to {method.is_active}")
+            
+            return JsonResponse({
+                'status': 'success',
+                'is_active': method.is_active
+            })
+        except PaymentMethod.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Payment method not found'
+            }, status=404)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def delete_payment_method(request, method_id):
+    if request.method == 'POST':
+        try:
+            method = PaymentMethod.objects.get(id=method_id)
+            method_name = method.name
+            method.delete()
+            
+            logger.info(f"Payment method {method_name} deleted successfully")
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Payment method {method_name} deleted successfully'
+            })
+        except PaymentMethod.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Payment method not found'
+            }, status=404)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
 
 
 
