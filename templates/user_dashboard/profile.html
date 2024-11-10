@@ -3,6 +3,33 @@
 {% block dashboard_content %}
 <h4 class="mb-4">Your account</h4>
 
+<!-- Custom Alert Section -->
+{% if show_success_alert %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    Profile updated successfully!
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+{% if show_additional_success_alert %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    Additional information updated successfully!
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<!-- Keep Django messages only for password updates and errors -->
+{% if messages %}
+<div class="messages mb-4">
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- Basic Information Card -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -69,7 +96,7 @@
 </div>
 
 <!-- More Information Card -->
-<div class="card">
+<div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">More Informations</h5>
         <button class="btn btn-sm btn-link">
@@ -127,8 +154,8 @@
     </div>
 </div>
 
-<!-- Your API key Card -->
-<div class="card mt-4">
+<!-- API Key Card -->
+<div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Your API key</h5>
         <button class="btn btn-sm btn-link">
@@ -137,8 +164,13 @@
     </div>
     <div class="card-body">
         <div class="mb-3">
-            <label class="form-label">Key</label>
-            <input type="text" class="form-control" value="{{ user.api_key }}" readonly>
+            <label class="form-label">API Key</label>
+            <div class="input-group">
+                <input type="text" class="form-control" value="{{ user.api_key }}" id="apiKey" readonly>
+                <button class="btn btn-outline-secondary" type="button" onclick="copyApiKey()">
+                    <i class="bi bi-clipboard"></i>
+                </button>
+            </div>
         </div>
         <button class="btn btn-danger" onclick="generateNewApiKey()">Generate new</button>
     </div>
@@ -147,9 +179,48 @@
 
 {% block extra_js %}
 <script>
+function copyApiKey() {
+    const apiKeyInput = document.getElementById('apiKey');
+    apiKeyInput.select();
+    document.execCommand('copy');
+    
+    // Show alert using Django messages system
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        API key copied to clipboard!
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.querySelector('.messages').appendChild(alertDiv);
+    
+    setTimeout(() => alertDiv.remove(), 3000);
+}
+
 function generateNewApiKey() {
     if (confirm('Are you sure you want to generate a new API key? Your old key will stop working!')) {
-        // Add AJAX call to generate new API key
+        fetch('{% url "generate_api_key" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('apiKey').value = data.api_key;
+                
+                // Show alert using Django messages system
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    New API key generated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.messages').appendChild(alertDiv);
+                
+                setTimeout(() => alertDiv.remove(), 3000);
+            }
+        });
     }
 }
 </script>

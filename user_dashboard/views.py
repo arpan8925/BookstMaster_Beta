@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.contrib.auth import update_session_auth_hash
 
 @login_required
 def ticket_list(request):
@@ -70,44 +71,53 @@ def dashboard(request):
 @login_required
 def profile(request):
     if request.method == 'POST':
-        # Handle basic information update
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        timezone = request.POST.get('timezone')
-        password = request.POST.get('password')
-        
         user = request.user
-        user.first_name = first_name
-        user.last_name = last_name
-        user.timezone = timezone
+        
+        # Update basic information
+        user.first_name = request.POST.get('first_name', '')
+        user.last_name = request.POST.get('last_name', '')
+        user.timezone = request.POST.get('timezone', 'UTC')
+        
+        # Handle password change
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
         
         if password:
-            user.set_password(password)
+            if password == confirm_password:
+                user.set_password(password)
+                update_session_auth_hash(request, user)
+                messages.success(request, 'Password updated successfully!')
+            else:
+                messages.error(request, 'Passwords do not match!')
+                return redirect('user_profile')
         
         user.save()
-        messages.success(request, 'Profile updated successfully!')
+        return render(request, 'user_dashboard/profile.html', {
+            'active_tab': 'profile',
+            'show_success_alert': True
+        })
         
-    context = {
-        'active_tab': 'profile'
-    }
-    return render(request, 'user_dashboard/profile.html', context)
+    return render(request, 'user_dashboard/profile.html', {'active_tab': 'profile'})
 
 @login_required
 def profile_more(request):
     if request.method == 'POST':
-        # Handle additional information update
         user = request.user
+        
+        # Update additional information
         user.website = request.POST.get('website')
         user.phone = request.POST.get('phone')
         user.skype = request.POST.get('skype')
         user.whatsapp = request.POST.get('whatsapp')
         user.address = request.POST.get('address')
         user.city = request.POST.get('city')
-        user.save()
         
-        messages.success(request, 'Additional information updated successfully!')
-        return redirect('user_profile')
-    
+        user.save()
+        return render(request, 'user_dashboard/profile.html', {
+            'active_tab': 'profile',
+            'show_additional_success_alert': True
+        })
+        
     return redirect('user_profile')
 
 @login_required
@@ -132,7 +142,7 @@ def favorites(request):
     return render(request, 'user_dashboard/favorites.html', context)
 
 @login_required
-def messages(request):
+def user_messages(request):
     context = {
         'active_tab': 'messages'
     }
@@ -316,3 +326,10 @@ def close_ticket(request, ticket_id):
     ticket.status = 'closed'
     ticket.save()
     return JsonResponse({'status': 'success'})
+
+@login_required
+def generate_new_api_key(request):
+    if request.method == 'POST':
+        request.user.generate_api_key()
+        return JsonResponse({'status': 'success', 'api_key': request.user.api_key})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
