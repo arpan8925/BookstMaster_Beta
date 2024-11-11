@@ -1,15 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Ticket, TicketMessage, Transaction
+from .models import Ticket, TicketMessage, Transaction, Order
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.contrib.auth import update_session_auth_hash
 import secrets
-from managerdashboard.models import PaymentMethod
+from managerdashboard.models import PaymentMethod, ServiceCategory, Service
 from decimal import Decimal
+import json
 
 @login_required
 def ticket_list(request):
@@ -167,12 +168,92 @@ def preferences(request):
 
 @login_required
 def new_order(request):
-    context = {
-        'active_tab': 'order'
-    }
     if request.method == 'POST':
-        # Handle form submission here
-        pass
+        try:
+            # Get form data
+            category_id = request.POST.get('category')
+            service_id = request.POST.get('service')
+            link = request.POST.get('link')
+            quantity = int(request.POST.get('quantity', 0))
+            
+            # Add debug logging
+            print(f"Creating order with service_id: {service_id}, quantity: {quantity}")
+            
+            # Validate service
+            try:
+                service = Service.objects.get(id=service_id, status='active')
+            except Service.DoesNotExist:
+                messages.error(request, 'Invalid service selected')
+                return redirect('new_order')
+            except Exception as e:
+                messages.error(request, f'Error finding service: {str(e)}')
+                return redirect('new_order')
+            
+            # Calculate total price
+            try:
+                price_per_1000 = service.rate
+                total_price = (Decimal(quantity) / 1000) * price_per_1000
+            except Exception as e:
+                messages.error(request, f'Error calculating price: {str(e)}')
+                return redirect('new_order')
+            
+            # Check if user has sufficient balance
+            if request.user.balance < total_price:
+                messages.error(request, 'Insufficient balance')
+                return redirect('new_order')
+            
+            try:
+                # Create order with explicit table name
+                order = Order.objects.create(
+                    user=request.user,
+                    service=service,
+                    link=link,
+                    quantity=quantity,
+                    price=total_price,
+                    status='pending'
+                )
+                print(f"Order created successfully with ID: {order.id}")
+                
+                # Deduct balance from user
+                request.user.balance -= total_price
+                request.user.save()
+                
+                messages.success(request, f'Order #{order.id} has been placed successfully!')
+                return redirect('order_log')
+                
+            except Exception as e:
+                print(f"Error creating order: {str(e)}")
+                messages.error(request, f'Database error: {str(e)}')
+                return redirect('new_order')
+            
+        except Exception as e:
+            print(f"Unexpected error in new_order view: {str(e)}")
+            messages.error(request, f'Error processing order: {str(e)}')
+            return redirect('new_order')
+    
+    # Get all active categories and services
+    categories = ServiceCategory.objects.all()
+    services = Service.objects.filter(status='active')
+    
+    # Prepare services data for JavaScript
+    services_data = {}
+    for service in services:
+        if service.category_id not in services_data:
+            services_data[service.category_id] = []
+        services_data[service.category_id].append({
+            'id': service.id,
+            'name': service.name,
+            'price_per_1000': float(service.rate),
+            'min_quantity': service.min_order,
+            'max_quantity': service.max_order,
+            'description': service.description
+        })
+    
+    context = {
+        'active_tab': 'order',
+        'categories': categories,
+        'services_data': json.dumps(services_data)
+    }
     return render(request, 'user_dashboard/order/new_order.html', context)
 
 @login_required

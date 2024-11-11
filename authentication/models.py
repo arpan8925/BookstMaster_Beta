@@ -19,15 +19,15 @@ class User(AbstractUser):
     api_key = models.CharField(max_length=64, unique=True, blank=True, null=True)
 
     def save(self, *args, **kwargs):
-        if not self.api_key:
-            self.api_key = self.generate_api_key()
+        # Only generate API key if this is a new user (no ID yet)
+        if not self.id and not self.api_key:
+            self.api_key = secrets.token_urlsafe(32)
         super().save(*args, **kwargs)
 
     def generate_api_key(self):
         """Generate a new API key"""
         new_key = secrets.token_urlsafe(32)
         self.api_key = new_key
-        self.save(update_fields=['api_key'])
         return new_key
 
     def __str__(self):

@@ -1,0 +1,22 @@
+python manage.py shell
+
+# Import the necessary models
+from authentication.models import User
+from django.contrib.auth.models import Group
+
+# Get or create the manager group
+manager_group, created = Group.objects.get_or_create(name='Manager')
+
+# Get the user you want to make manager (replace 'username' with actual username)
+user = User.objects.get(username='tridha8924')  # Replace with your username
+
+# Add user to manager group
+user.groups.add(manager_group)
+
+# Set is_staff to True to give admin panel access
+user.is_staff = True
+user.save()
+
+# Verify the changes
+print(f"User {user.username} is now a manager: {user.groups.filter(name='Manager').exists()}")
+print(f"User {user.username} has staff access: {user.is_staff}")

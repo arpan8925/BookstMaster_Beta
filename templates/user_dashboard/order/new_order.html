@@ -4,32 +4,45 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <button class="btn btn-primary me-2">Single Order</button>
-                <button class="btn btn-outline-primary">Mass Order</button>
-            </div>
+            <button class="btn btn-primary me-2">Single Order</button>
+            <button class="btn btn-outline-primary">Mass Order</button>
         </div>
     </div>
     <div class="card-body">
-        <form method="post">
+        {% if messages %}
+        <div class="messages mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" id="orderForm">
             {% csrf_token %}
             <div class="mb-3">
                 <label class="form-label">Category</label>
-                <select class="form-select" name="category">
+                <select class="form-select" name="category" id="categorySelect" required>
                     <option value="">Choose a category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Service</label>
-                <select class="form-select" name="service">
+                <select class="form-select" name="service" id="serviceSelect" required>
                     <option value="">Choose a service</option>
                 </select>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Link</label>
-                <input type="url" class="form-control" name="link" placeholder="https://">
+                <input type="url" class="form-control" name="link" id="linkInput" 
+                       placeholder="https://" required>
                 <small class="text-muted">Enter the link to your social media profile or post</small>
             </div>
 
@@ -37,8 +50,11 @@
                 <div class="col-md-4">
                     <div class="mb-3">
                         <label class="form-label">Quantity</label>
-                        <input type="number" class="form-control" name="quantity">
-                        <small class="text-muted">Minimum: 100 - Maximum: 10000</small>
+                        <input type="number" class="form-control" name="quantity" 
+                               id="quantityInput" required>
+                        <small class="text-muted" id="quantityLimits">
+                            Minimum: 100 - Maximum: 10000
+                        </small>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -46,7 +62,8 @@
                         <label class="form-label">Price per 1000</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input type="text" class="form-control" value="0.50" readonly>
+                            <input type="text" class="form-control" id="pricePerThousand" 
+                                   readonly>
                         </div>
                     </div>
                 </div>
@@ -55,7 +72,7 @@
                         <label class="form-label">Total Price</label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input type="text" class="form-control" readonly>
+                            <input type="text" class="form-control" id="totalPrice" readonly>
                         </div>
                     </div>
                 </div>
@@ -64,7 +81,9 @@
             <div class="mb-3">
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" required>
-                    <label class="form-check-label">I have confirmed the order details</label>
+                    <label class="form-check-label">
+                        I have confirmed the order details
+                    </label>
                 </div>
             </div>
 
@@ -72,6 +91,90 @@
         </form>
     </div>
 </div>
+
+<script>
+// Services data from backend
+const servicesData = JSON.parse('{{ services_data|escapejs }}');
+let currentService = null;
+
+// Handle category change
+document.getElementById('categorySelect').addEventListener('change', function() {
+    const categoryId = this.value;
+    const serviceSelect = document.getElementById('serviceSelect');
+    serviceSelect.innerHTML = '<option value="">Choose a service</option>';
+    
+    if (categoryId && servicesData[categoryId]) {
+        servicesData[categoryId].forEach(service => {
+            const option = new Option(service.name, service.id);
+            serviceSelect.add(option);
+        });
+    }
+    
+    // Reset other fields
+    resetFields();
+});
+
+// Handle service change
+document.getElementById('serviceSelect').addEventListener('change', function() {
+    const categoryId = document.getElementById('categorySelect').value;
+    const serviceId = this.value;
+    
+    currentService = servicesData[categoryId]?.find(s => s.id == serviceId);
+    
+    if (currentService) {
+        document.getElementById('pricePerThousand').value = currentService.price_per_1000.toFixed(2);
+        document.getElementById('quantityLimits').textContent = 
+            `Minimum: ${currentService.min_quantity} - Maximum: ${currentService.max_quantity}`;
+        
+        // Update quantity input constraints
+        const quantityInput = document.getElementById('quantityInput');
+        quantityInput.min = currentService.min_quantity;
+        quantityInput.max = currentService.max_quantity;
+        
+        // Calculate total if quantity exists
+        calculateTotal();
+    } else {
+        resetFields();
+    }
+});
+
+// Handle quantity change
+document.getElementById('quantityInput').addEventListener('input', calculateTotal);
+
+function calculateTotal() {
+    const quantity = parseInt(document.getElementById('quantityInput').value) || 0;
+    if (currentService && quantity) {
+        const total = (quantity / 1000) * currentService.price_per_1000;
+        document.getElementById('totalPrice').value = total.toFixed(2);
+    } else {
+        document.getElementById('totalPrice').value = '';
+    }
+}
+
+function resetFields() {
+    currentService = null;
+    document.getElementById('pricePerThousand').value = '';
+    document.getElementById('totalPrice').value = '';
+    document.getElementById('quantityInput').value = '';
+    document.getElementById('quantityLimits').textContent = 'Minimum: 100 - Maximum: 10000';
+}
+
+// Form validation
+document.getElementById('orderForm').addEventListener('submit', function(e) {
+    if (!currentService) {
+        e.preventDefault();
+        alert('Please select a service');
+        return;
+    }
+    
+    const quantity = parseInt(document.getElementById('quantityInput').value);
+    if (quantity < currentService.min_quantity || quantity > currentService.max_quantity) {
+        e.preventDefault();
+        alert(`Quantity must be between ${currentService.min_quantity} and ${currentService.max_quantity}`);
+        return;
+    }
+});
+</script>
 {% endblock %} 
 
 
