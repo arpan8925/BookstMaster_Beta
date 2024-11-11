@@ -1,40 +1,98 @@
-// Global variables
-let currentOrderId = null;
+function showLoader(message) {
+    // You can implement a proper loader UI here
+    console.log(message);
+}
 
-// Function to view order details
+function hideLoader() {
+    // Hide your loader UI
+    console.log('Loading complete');
+}
+
 function viewOrder(orderId) {
-    currentOrderId = orderId;
-    showLoader('Loading order details...');
+    // Show the modal immediately
+    const modal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
+    modal.show();
     
-    fetch(`/manager/orders/${orderId}/get-info/`)
-        .then(response => response.json())
+    // Show loading state
+    setModalLoadingState();
+    
+    // Fetch order details
+    fetch(`/managerdashboard/orders/${orderId}/get-info/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            // Populate modal with order data
-            document.getElementById('view_order_id').textContent = data.id;
-            document.getElementById('view_service').textContent = data.service;
-            document.getElementById('view_status').textContent = data.status;
-            document.getElementById('view_created').textContent = data.created_at;
-            document.getElementById('view_user_email').textContent = data.user_email;
-            document.getElementById('view_charge').textContent = data.charge;
-            document.getElementById('view_link').textContent = data.link;
-            document.getElementById('view_link').href = data.link;
-            document.getElementById('view_quantity').textContent = data.quantity;
-            document.getElementById('view_start_counter').textContent = data.start_counter;
-            document.getElementById('view_remains').textContent = data.remains;
-            document.getElementById('view_provider').textContent = data.provider;
-            document.getElementById('view_provider_order_id').textContent = data.provider_order_id;
-            document.getElementById('view_api_response').textContent = data.api_response;
-
-            // Show modal
-            new bootstrap.Modal(document.getElementById('viewOrderModal')).show();
+            console.log('Received data:', data); // Debug log
+            updateModalWithData(data);
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error loading order details');
-        })
-        .finally(() => {
-            hideLoader();
+            setModalErrorState();
         });
+}
+
+// Helper function to set loading state
+function setModalLoadingState() {
+    const loadingText = 'Loading...';
+    document.getElementById('modal-order-id').textContent = loadingText;
+    document.getElementById('modal-order-status').innerHTML = '<span class="badge bg-secondary">Loading...</span>';
+    document.getElementById('modal-order-date').textContent = loadingText;
+    document.getElementById('modal-order-updated').textContent = loadingText;
+    document.getElementById('modal-service-name').textContent = loadingText;
+    document.getElementById('modal-order-quantity').textContent = loadingText;
+    document.getElementById('modal-order-price').textContent = loadingText;
+    document.getElementById('modal-order-link').textContent = loadingText;
+    document.getElementById('modal-user-email').textContent = loadingText;
+}
+
+// Helper function to update modal with data
+function updateModalWithData(data) {
+    document.getElementById('modal-order-id').textContent = `#${data.id}`;
+    document.getElementById('modal-order-status').innerHTML = getStatusBadge(data.status);
+    document.getElementById('modal-order-date').textContent = formatDate(data.created_at);
+    document.getElementById('modal-order-updated').textContent = formatDate(data.updated_at);
+    document.getElementById('modal-service-name').textContent = data.service;
+    document.getElementById('modal-order-quantity').textContent = data.quantity;
+    document.getElementById('modal-order-price').textContent = `$${data.charge}`;
+    document.getElementById('modal-order-link').textContent = data.link;
+    document.getElementById('modal-order-link').href = data.link;
+    document.getElementById('modal-user-email').textContent = data.user_email;
+}
+
+// Helper function to set error state
+function setModalErrorState() {
+    document.getElementById('modal-order-id').textContent = 'Error loading data';
+    document.getElementById('modal-order-status').innerHTML = '<span class="badge bg-danger">Error</span>';
+    document.getElementById('modal-order-date').textContent = 'Error';
+    document.getElementById('modal-order-updated').textContent = 'Error';
+    document.getElementById('modal-service-name').textContent = 'Error loading service details';
+    document.getElementById('modal-order-quantity').textContent = 'Error';
+    document.getElementById('modal-order-price').textContent = 'Error';
+    document.getElementById('modal-order-link').textContent = 'Error loading link';
+    document.getElementById('modal-user-email').textContent = 'Error loading user details';
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+// Helper function to generate status badge HTML
+function getStatusBadge(status) {
+    const badges = {
+        'completed': '<span class="badge bg-success-subtle text-success">Completed</span>',
+        'pending': '<span class="badge bg-warning-subtle text-warning">Pending</span>',
+        'processing': '<span class="badge bg-info-subtle text-info">Processing</span>',
+        'canceled': '<span class="badge bg-danger-subtle text-danger">Canceled</span>',
+        'failed': '<span class="badge bg-danger">Failed</span>',
+        'refunded': '<span class="badge bg-secondary">Refunded</span>'
+    };
+    return badges[status] || `<span class="badge bg-secondary">${status}</span>`;
 }
 
 // Function to check order status

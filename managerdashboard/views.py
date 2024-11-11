@@ -2197,6 +2197,41 @@ def export_transactions(request):
     
     return response
 
+@permission_required('authentication.is_manager', login_url='manager_login')
+def get_order_info(request, order_id):
+    logger.debug(f"Fetching order info for ID: {order_id}")  # Debug log
+    try:
+        # Use select_related to optimize the query
+        order = Order.objects.select_related('user', 'service').get(id=order_id)
+        
+        data = {
+            'id': order.id,
+            'status': order.status,
+            'created_at': order.created.isoformat() if order.created else None,
+            'updated_at': order.updated.isoformat() if order.updated else None,
+            'charge': str(order.price),
+            'service': order.service.name if order.service else 'N/A',
+            'quantity': order.quantity,
+            'link': order.link,
+            'user_email': order.user.email if order.user else 'N/A',
+        }
+        logger.debug(f"Returning order data: {data}")  # Debug log
+        return JsonResponse(data)
+        
+    except Order.DoesNotExist:
+        logger.error(f"Order not found: {order_id}")
+        return JsonResponse({
+            'error': 'Order not found'
+        }, status=404)
+        
+    except Exception as e:
+        logger.error(f"Error fetching order {order_id}: {str(e)}")
+        return JsonResponse({
+            'error': f'Error fetching order details: {str(e)}'
+        }, status=500)
+
+
+
 
 
 
