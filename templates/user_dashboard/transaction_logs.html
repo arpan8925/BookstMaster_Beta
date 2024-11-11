@@ -6,13 +6,52 @@
         <h5 class="mb-0">Transaction Logs</h5>
     </div>
     <div class="card-body">
+        <!-- Transaction Statistics -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Transactions</h6>
+                        <h2 class="mb-0">{{ total_transactions }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Amount</h6>
+                        <h2 class="mb-0">${{ total_amount|floatformat:2 }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Completed</h6>
+                        <h2 class="mb-0">{{ completed_transactions }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Pending</h6>
+                        <h2 class="mb-0">{{ pending_transactions }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Transaction ID</th>
                         <th>Payment Method</th>
-                        <th>Amount (Includes Fee)</th>
+                        <th>Amount</th>
+                        <th>Fee</th>
+                        <th>Total Amount</th>
                         <th>Created</th>
                         <th>Status</th>
                     </tr>
@@ -20,22 +59,93 @@
                 <tbody>
                     {% for transaction in transactions %}
                     <tr>
-                        <td>{{ transaction.id }}</td>
-                        <td>{{ transaction.payment_method }}</td>
-                        <td>${{ transaction.amount }}</td>
-                        <td>{{ transaction.created }}</td>
                         <td>
-                            <span class="badge bg-warning">{{ transaction.status }}</span>
+                            <a href="{% url 'transaction_detail' transaction.transaction_id %}">
+                                {{ transaction.transaction_id }}
+                            </a>
+                        </td>
+                        <td>{{ transaction.payment_method }}</td>
+                        <td>${{ transaction.amount|floatformat:2 }}</td>
+                        <td>${{ transaction.fee|floatformat:2 }}</td>
+                        <td>${{ transaction.total_amount|floatformat:2 }}</td>
+                        <td>{{ transaction.created|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            {% if transaction.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif transaction.status == 'waiting' %}
+                                <span class="badge bg-warning">Waiting for buyer funds...</span>
+                            {% elif transaction.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% elif transaction.status == 'refunded' %}
+                                <span class="badge bg-info">Refunded</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center">No transactions found</td>
+                        <td colspan="7" class="text-center">No transactions found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        {% if transactions.has_other_pages %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-end">
+                {% if transactions.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ transactions.previous_page_number }}">&laquo; Previous</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">&laquo; Previous</span>
+                    </li>
+                {% endif %}
+
+                {% for num in transactions.paginator.page_range %}
+                    {% if transactions.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if transactions.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ transactions.next_page_number }}">Next &raquo;</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next &raquo;</span>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
+
+<style>
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+.table > :not(caption) > * > * {
+    padding: 1rem 0.75rem;
+}
+.card {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+</style>
 {% endblock %} 

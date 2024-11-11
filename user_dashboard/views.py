@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Ticket, TicketMessage
+from .models import Ticket, TicketMessage, Transaction
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
@@ -233,18 +233,22 @@ def add_funds(request):
 
 @login_required
 def transaction_logs(request):
-    transactions = [
-        {
-            'id': 1,
-            'amount': 4.08,
-            'payment_method': 'Bkash',
-            'status': 'Waiting for buyer funds...',
-            'created': '2023-01-20 18:03:24'
-        }
-    ]
+    # Get all transactions for the current user, ordered by creation date
+    transactions = Transaction.objects.filter(user=request.user).order_by('-created')
+    
+    # Add pagination
+    paginator = Paginator(transactions, 10)  # Show 10 transactions per page
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
+    
     context = {
         'active_tab': 'transactions',
-        'transactions': transactions
+        'transactions': transactions_page,
+        # Add summary statistics
+        'total_transactions': transactions.count(),
+        'total_amount': sum(t.total_amount for t in transactions),
+        'completed_transactions': transactions.filter(status='completed').count(),
+        'pending_transactions': transactions.filter(status='waiting').count()
     }
     return render(request, 'user_dashboard/transaction_logs.html', context)
 
@@ -363,12 +367,10 @@ def process_payment(request, method_id):
             method = PaymentMethod.objects.get(id=method_id, is_active=True)
             amount = Decimal(request.POST.get('amount', '0'))
             
-            # Validate amount
             if amount < method.min_amount or amount > method.max_amount:
                 messages.error(request, 'Invalid amount')
                 return redirect('add_funds')
             
-            # Calculate fee
             fee = Decimal('0')
             if method.fee_type == 'percentage':
                 fee = amount * (method.fee_percentage / Decimal('100'))
@@ -377,22 +379,41 @@ def process_payment(request, method_id):
             else:
                 fee = (amount * (method.fee_percentage / Decimal('100'))) + method.fee_fixed
             
-            # Create transaction record
+            # Create transaction with description
             transaction = Transaction.objects.create(
                 user=request.user,
                 amount=amount,
                 fee=fee,
                 payment_method=method.name,
-                status='waiting'
+                status='waiting',
+                description=f"Payment via {method.name}"  # Using description instead of notes
             )
             
-            # Redirect to appropriate payment processor
-            # This is just a placeholder - implement actual payment processing
-            return redirect('transaction_logs')
+            if method.type == 'automatic':
+                payment_handler = get_payment_handler(method.name)
+                if payment_handler:
+                    return payment_handler.initialize_payment(transaction)
+            else:
+                messages.success(
+                    request, 
+                    f'Transaction initiated successfully. Your transaction ID is {transaction.transaction_id}'
+                )
+                return redirect('transaction_detail', transaction_id=transaction.transaction_id)
             
         except PaymentMethod.DoesNotExist:
             messages.error(request, 'Invalid payment method')
         except Exception as e:
-            messages.error(request, str(e))
+            messages.error(request, f'Error processing payment: {str(e)}')
     
     return redirect('add_funds')
+
+@login_required
+def transaction_detail(request, transaction_id):
+    """View for showing transaction details"""
+    transaction = get_object_or_404(Transaction, transaction_id=transaction_id, user=request.user)
+    
+    context = {
+        'active_tab': 'transactions',
+        'transaction': transaction,
+    }
+    return render(request, 'user_dashboard/transaction_detail.html', context)

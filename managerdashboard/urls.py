@@ -112,6 +112,12 @@ urlpatterns = [
 
     path('settings/payment-methods/<int:method_id>/edit/', views.edit_payment_method, name='edit_payment_method'),
 
+    path('transactions/<int:transaction_id>/approve/', views.approve_transaction, name='approve_transaction'),
+
+    path('transactions/<int:transaction_id>/cancel/', views.cancel_transaction, name='cancel_transaction'),
+
+    path('transactions/<int:transaction_id>/', views.view_transaction, name='view_transaction'),
+
 ]
 
 

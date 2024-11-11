@@ -42,7 +42,11 @@ class Transaction(models.Model):
         ('cancelled', 'Cancelled')
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='manager_transactions'
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     type = models.CharField(max_length=10, choices=[('credit', 'Credit'), ('debit', 'Debit')])
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting')

@@ -22,4 +22,5 @@ urlpatterns = [
     path('add-funds/', views.add_funds, name='add_funds'),
     path('transaction-logs/', views.transaction_logs, name='transaction_logs'),
     path('process-payment/<int:method_id>/', views.process_payment, name='process_payment'),
+    path('transaction/<str:transaction_id>/', views.transaction_detail, name='transaction_detail'),
 ]

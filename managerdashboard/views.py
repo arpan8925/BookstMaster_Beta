@@ -6,7 +6,7 @@ from django.db.models import Count, Sum
 
 from authentication.models import User
 
-from user_dashboard.models import Ticket, TicketMessage
+from user_dashboard.models import Ticket, TicketMessage, Transaction
 
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -17,9 +17,8 @@ from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail as django_send_mail
 from django.conf import settings
 from decimal import Decimal, InvalidOperation
-from django.db import transaction
+from django.db import transaction as db_transaction
 from .models import (
-    Transaction, 
     Provider, 
     ProviderTransaction,
     Service,
@@ -700,11 +699,13 @@ def payments(request):
 
     status_filter = request.GET.get('status', '')
 
+    date_filter = request.GET.get('date', 'all')
+
     
 
-    # Base queryset
+    # Base queryset with related user info - using the user_dashboard Transaction model
 
-    transactions = Transaction.objects.select_related('user', 'added_by').all().order_by('-created_at')
+    transactions = Transaction.objects.select_related('user').all().order_by('-created')
 
     
 
@@ -716,29 +717,57 @@ def payments(request):
 
             Q(transaction_id__icontains=search_query) |
 
-            Q(user__email__icontains=search_query) |
-
-            Q(user__username__icontains=search_query)
+            Q(user__email__icontains=search_query)
 
         )
 
     
 
-    if status_filter and status_filter != 'all':
+    if status_filter == 'paid':
 
-        transactions = transactions.filter(status=status_filter)
+        transactions = transactions.filter(status='completed')
+
+    elif status_filter == 'waiting':
+
+        transactions = transactions.filter(status='waiting')
+
+    elif status_filter == 'cancelled':
+
+        transactions = transactions.filter(status='cancelled')
 
     
 
-    # Get counts for stats
+    # Apply date filter
 
-    total_count = Transaction.objects.count()
+    if date_filter == 'today':
 
-    paid_count = Transaction.objects.filter(status='paid').count()
+        transactions = transactions.filter(created__date=timezone.now().date())
 
-    waiting_count = Transaction.objects.filter(status='waiting').count()
+    elif date_filter == 'yesterday':
 
-    cancelled_count = Transaction.objects.filter(status='cancelled').count()
+        transactions = transactions.filter(created__date=timezone.now().date() - timedelta(days=1))
+
+    elif date_filter == 'last7days':
+
+        transactions = transactions.filter(created__date__gte=timezone.now().date() - timedelta(days=7))
+
+    elif date_filter == 'last30days':
+
+        transactions = transactions.filter(created__date__gte=timezone.now().date() - timedelta(days=30))
+
+    
+
+    # Calculate statistics
+
+    total_count = transactions.count()
+
+    total_amount = transactions.aggregate(Sum('amount'))['amount__sum'] or 0
+
+    paid_count = transactions.filter(status='completed').count()
+
+    waiting_count = transactions.filter(status='waiting').count()
+
+    cancelled_count = transactions.filter(status='cancelled').count()
 
     
 
@@ -762,6 +791,8 @@ def payments(request):
 
         'total_count': total_count,
 
+        'total_amount': total_amount,
+
         'paid_count': paid_count,
 
         'waiting_count': waiting_count,
@@ -770,7 +801,9 @@ def payments(request):
 
         'search_query': search_query,
 
-        'status_filter': status_filter
+        'status_filter': status_filter,
+
+        'date_filter': date_filter
 
     }
 
@@ -786,61 +819,71 @@ def approve_transaction(request, transaction_id):
 
         try:
 
-            transaction = Transaction.objects.get(id=transaction_id)
+            with db_transaction.atomic():
 
-            
+                txn = Transaction.objects.select_for_update().get(id=transaction_id)
+                
+                if txn.status != 'waiting':
 
-            # Only allow approving waiting transactions
+                    return JsonResponse({
 
-            if transaction.status != 'waiting':
+                        'status': 'error',
 
+                        'message': 'Transaction cannot be approved'
+
+                    }, status=400)
+                
+                # Update transaction status
+
+                txn.status = 'completed'
+
+                txn.save()
+                
+                # Add amount to user's balance
+
+                user = txn.user
+
+                user.balance = user.balance + txn.amount
+
+                user.save()
+                
                 return JsonResponse({
 
-                    'error': 'Only waiting transactions can be approved'
+                    'status': 'success',
 
-                }, status=400)
+                    'message': 'Transaction approved successfully'
 
-            
-
-            # Update transaction status
-
-            transaction.status = 'paid'
-
-            transaction.save()
-
-            
-
-            # Add funds to user's balance
-
-            user = transaction.user
-
-            user.balance += transaction.amount
-
-            user.save()
-
-            
+                })
+                
+        except Transaction.DoesNotExist:
 
             return JsonResponse({
 
-                'status': 'success',
+                'status': 'error',
 
-                'message': 'Transaction approved successfully'
+                'message': 'Transaction not found'
 
-            })
-
-            
-
-        except Transaction.DoesNotExist:
-
-            return JsonResponse({'error': 'Transaction not found'}, status=404)
+            }, status=404)
 
         except Exception as e:
 
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({
+
+                'status': 'error',
+
+                'message': str(e)
+
+            }, status=400)
 
             
 
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    return JsonResponse({
+
+        'status': 'error',
+
+        'message': 'Invalid request method'
+
+    }, status=405)
 
 
 
@@ -1936,6 +1979,95 @@ def edit_payment_method(request, method_id):
                 'status': 'error',
                 'message': str(e)
             }, status=400)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def view_transaction(request, transaction_id):
+    transaction = get_object_or_404(Transaction, id=transaction_id)
+    return JsonResponse({
+        'id': transaction.id,
+        'user': transaction.user.email,
+        'amount': str(transaction.amount),
+        'fee': str(transaction.fee),
+        'total_amount': str(transaction.total_amount),
+        'payment_method': transaction.payment_method,
+        'status': transaction.status,
+        'created_at': transaction.created_at.strftime('%Y-%m-d %H:%M:%S'),
+        'description': transaction.description
+    })
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def approve_transaction(request, transaction_id):
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                txn = Transaction.objects.select_for_update().get(id=transaction_id)
+                
+                if txn.status != 'waiting':
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Transaction cannot be approved'
+                    }, status=400)
+                
+                # Update transaction status
+                txn.status = 'completed'
+                txn.save()
+                
+                # Add amount to user's balance
+                user = txn.user
+                user.balance = user.balance + txn.amount
+                user.save()
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Transaction approved successfully'
+                })
+                
+        except Transaction.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Transaction not found'
+            }, status=404)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+            
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def cancel_transaction(request, transaction_id):
+    if request.method == 'POST':
+        try:
+            txn = Transaction.objects.get(id=transaction_id)
+            
+            if txn.status != 'waiting':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Transaction cannot be cancelled'
+                }, status=400)
+            
+            txn.status = 'cancelled'
+            txn.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Transaction cancelled successfully'
+            })
+            
+        except Transaction.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Transaction not found'
+            }, status=404)
             
     return JsonResponse({
         'status': 'error',

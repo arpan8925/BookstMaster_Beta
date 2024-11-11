@@ -1,0 +1,66 @@
+{% extends 'user_dashboard/base_dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Transaction Details</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Transaction ID:</th>
+                        <td>{{ transaction.transaction_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Amount:</th>
+                        <td>${{ transaction.amount|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee:</th>
+                        <td>${{ transaction.fee|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Total Amount:</th>
+                        <td>${{ transaction.total_amount|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Payment Method:</th>
+                        <td>{{ transaction.payment_method }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            <span class="badge bg-{{ transaction.status|lower }}">
+                                {{ transaction.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Created:</th>
+                        <td>{{ transaction.created|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                    {% if transaction.description %}
+                    <tr>
+                        <th>Description:</th>
+                        <td>{{ transaction.description }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+            
+            {% if transaction.status == 'waiting' and transaction.payment_details %}
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title">Payment Instructions</h6>
+                        <!-- Add payment instructions based on payment method -->
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

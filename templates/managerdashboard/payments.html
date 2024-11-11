@@ -17,7 +17,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="row mb-4">
+    <div class="row g-4 mb-4">
         <div class="col-md-3">
             <div class="card bg-white border-0 shadow-sm">
                 <div class="card-body d-flex align-items-center">
@@ -35,11 +35,11 @@
             <div class="card bg-white border-0 shadow-sm">
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-2">Paid</h6>
-                        <h3 class="mb-0">{{ paid_count }}</h3>
+                        <h6 class="text-muted mb-2">Total Amount</h6>
+                        <h3 class="mb-0">${{ total_amount|floatformat:2 }}</h3>
                     </div>
                     <div class="ms-3">
-                        <i class="bi bi-check-circle fs-1 text-success opacity-25"></i>
+                        <i class="bi bi-currency-dollar fs-1 text-success opacity-25"></i>
                     </div>
                 </div>
             </div>
@@ -48,7 +48,7 @@
             <div class="card bg-white border-0 shadow-sm">
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-2">Waiting</h6>
+                        <h6 class="text-muted mb-2">Pending</h6>
                         <h3 class="mb-0">{{ waiting_count }}</h3>
                     </div>
                     <div class="ms-3">
@@ -61,11 +61,11 @@
             <div class="card bg-white border-0 shadow-sm">
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-grow-1">
-                        <h6 class="text-muted mb-2">Cancelled</h6>
-                        <h3 class="mb-0">{{ cancelled_count }}</h3>
+                        <h6 class="text-muted mb-2">Completed</h6>
+                        <h3 class="mb-0">{{ paid_count }}</h3>
                     </div>
                     <div class="ms-3">
-                        <i class="bi bi-x-circle fs-1 text-danger opacity-25"></i>
+                        <i class="bi bi-check-circle fs-1 text-success opacity-25"></i>
                     </div>
                 </div>
             </div>
@@ -111,10 +111,11 @@
                 </div>
                 <div class="col-md-4">
                     <select class="form-select" id="dateFilter" onchange="filterByDate(this.value)">
-                        <option value="today">Today</option>
-                        <option value="yesterday">Yesterday</option>
-                        <option value="last7days">Last 7 Days</option>
-                        <option value="last30days">Last 30 Days</option>
+                        <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
+                        <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                        <option value="last7days" {% if date_filter == 'last7days' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="last30days" {% if date_filter == 'last30days' %}selected{% endif %}>Last 30 Days</option>
                         <option value="custom">Custom Range</option>
                     </select>
                 </div>
@@ -126,8 +127,8 @@
     <div class="card bg-white border-0 shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+                <table class="table table-hover align-middle">
+                    <thead>
                         <tr>
                             <th>No.</th>
                             <th>User</th>
@@ -146,28 +147,22 @@
                         {% for transaction in transactions %}
                         <tr>
                             <td>{{ transaction.id }}</td>
+                            <td>{{ transaction.user.email }}</td>
+                            <td>${{ transaction.user.balance|default:"0.00" }}</td>
+                            <td>${{ transaction.amount|floatformat:2 }}</td>
+                            <td>{{ transaction.payment_method }}</td>
+                            <td>{{ transaction.transaction_id }}</td>
+                            <td>${{ transaction.fee|floatformat:2 }}</td>
+                            <td>{{ transaction.description|default:"-" }}</td>
+                            <td>{{ transaction.created|date:"Y-m-d H:i:s" }}</td>
                             <td>
-                                {{ transaction.user.email }}
-                            </td>
-                            <td>${{ transaction.balance|default:"0.00" }}</td>
-                            <td>${{ transaction.amount }}</td>
-                            <td>
-                                {% if transaction.payment_method == 'paypal' %}
-                                    <img src="{% static 'images/paypal.png' %}" alt="PayPal" height="20">
-                                {% elif transaction.payment_method == 'manual' %}
-                                    <span class="badge bg-info">Manual Payment</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ transaction.transaction_id|default:"None" }}</td>
-                            <td>${{ transaction.fee|default:"0.00" }}</td>
-                            <td>{{ transaction.note|default:"-" }}</td>
-                            <td>{{ transaction.created_at|date:"Y-m-d H:i:s" }}</td>
-                            <td>
-                                {% if transaction.status == 'paid' %}
-                                    <span class="badge bg-success-subtle text-success">Paid</span>
+                                {% if transaction.status == 'completed' %}
+                                    <span class="badge bg-success-subtle text-success">Completed</span>
                                 {% elif transaction.status == 'waiting' %}
                                     <span class="badge bg-warning-subtle text-warning">Waiting</span>
-                                {% else %}
+                                {% elif transaction.status == 'failed' %}
+                                    <span class="badge bg-danger-subtle text-danger">Failed</span>
+                                {% elif transaction.status == 'cancelled' %}
                                     <span class="badge bg-danger-subtle text-danger">Cancelled</span>
                                 {% endif %}
                             </td>
@@ -178,18 +173,18 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="viewTransaction({{ transaction.id }})">
+                                            <a class="dropdown-item" href="javascript:void(0)" onclick="viewTransaction('{{ transaction.id }}')">
                                                 <i class="bi bi-eye me-2 text-primary"></i>View Details
                                             </a>
                                         </li>
                                         {% if transaction.status == 'waiting' %}
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="approveTransaction({{ transaction.id }})">
+                                            <a class="dropdown-item" href="javascript:void(0)" onclick="approveTransaction('{{ transaction.id }}')">
                                                 <i class="bi bi-check-circle me-2 text-success"></i>Approve
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item text-danger" href="#" onclick="cancelTransaction({{ transaction.id }})">
+                                            <a class="dropdown-item text-danger" href="javascript:void(0)" onclick="cancelTransaction('{{ transaction.id }}')">
                                                 <i class="bi bi-x-circle me-2"></i>Cancel
                                             </a>
                                         </li>
