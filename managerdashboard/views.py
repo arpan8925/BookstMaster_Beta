@@ -1463,15 +1463,15 @@ def add_service(request):
             )
             print("Category:", category)
             
-            # Get the first active provider or create a default one
-            provider = Provider.objects.filter(is_active=True).first()
-            if not provider:
-                provider = Provider.objects.create(
-                    name="Default Provider",
-                    api_url="https://example.com",
-                    api_key="default_key",
-                    is_active=True
-                )
+            # Set the provider statically as "Official Provider"
+            provider, _ = Provider.objects.get_or_create(
+                name="Official Provider",
+                defaults={
+                    'api_url': "https://officialprovider.com",
+                    'api_key': "official_key",
+                    'is_active': True
+                }
+            )
             print("Provider:", provider)
             
             # Create service
