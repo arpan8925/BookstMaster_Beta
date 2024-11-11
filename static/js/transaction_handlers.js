@@ -1,43 +1,99 @@
-function viewTransaction(id) {
-    window.location.href = `/manager/transactions/${id}/`;
+function viewTransaction(transactionId) {
+    fetch(`/manager/transactions/${transactionId}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Populate modal fields with proper formatting
+            document.getElementById('view_transaction_id').textContent = data.transaction_id || '-';
+            document.getElementById('view_amount').textContent = `$${data.amount}`;
+            document.getElementById('view_user_email').textContent = data.user;
+            document.getElementById('view_status').textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            document.getElementById('view_payment_method').textContent = data.payment_method;
+            document.getElementById('view_transaction_id_ext').textContent = data.transaction_id || '-';
+            document.getElementById('view_fee').textContent = `$${data.fee}`;
+            document.getElementById('view_note').textContent = data.note;
+            document.getElementById('view_created').textContent = data.created_at;
+            document.getElementById('view_balance').textContent = `$${data.balance}`;
+
+            // Show appropriate action buttons based on status
+            const actionsDiv = document.getElementById('view_transaction_actions');
+            actionsDiv.innerHTML = '';
+
+            if (data.status === 'waiting') {
+                actionsDiv.innerHTML = `
+                    <button class="btn btn-success" onclick="approveTransaction(${data.id})">
+                        <i class="bi bi-check-circle me-2"></i>Approve
+                    </button>
+                    <button class="btn btn-danger ms-2" onclick="cancelTransaction(${data.id})">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </button>
+                `;
+            }
+
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('viewTransactionModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading transaction details');
+        });
 }
 
-function approveTransaction(id) {
-    if (confirm('Are you sure you want to approve this transaction?')) {
-        fetch(`/manager/transactions/${id}/approve/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken,
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                location.reload();
-            } else {
-                alert(data.message || 'Error approving transaction');
-            }
-        });
-    }
+function approveTransaction(transactionId) {
+    if (!confirm('Are you sure you want to approve this transaction?')) return;
+
+    fetch(`/manager/transactions/${transactionId}/approve/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Close modal and refresh page
+            bootstrap.Modal.getInstance(document.getElementById('viewTransactionModal')).hide();
+            location.reload();
+        } else {
+            alert(data.message || 'Error approving transaction');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error approving transaction');
+    });
 }
 
-function cancelTransaction(id) {
-    if (confirm('Are you sure you want to cancel this transaction?')) {
-        fetch(`/manager/transactions/${id}/cancel/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken,
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                location.reload();
-            } else {
-                alert(data.message || 'Error cancelling transaction');
-            }
-        });
-    }
+function cancelTransaction(transactionId) {
+    if (!confirm('Are you sure you want to cancel this transaction?')) return;
+
+    fetch(`/manager/transactions/${transactionId}/cancel/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Close modal and refresh page
+            bootstrap.Modal.getInstance(document.getElementById('viewTransactionModal')).hide();
+            location.reload();
+        } else {
+            alert(data.message || 'Error canceling transaction');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error canceling transaction');
+    });
 }
 
 function searchTransactions() {
@@ -99,22 +155,14 @@ function filterByDate(value) {
 // Handle custom date range form submission
 document.getElementById('dateRangeForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
+    const formData = new FormData(this);
+    const params = new URLSearchParams(window.location.search);
     
-    const startDate = this.querySelector('[name="start_date"]').value;
-    const endDate = this.querySelector('[name="end_date"]').value;
+    params.set('start_date', formData.get('start_date'));
+    params.set('end_date', formData.get('end_date'));
+    params.set('date', 'custom');
     
-    // Validate dates
-    if (new Date(startDate) > new Date(endDate)) {
-        alert('Start date cannot be later than end date');
-        return;
-    }
-    
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('date', 'custom');
-    currentUrl.searchParams.set('start_date', startDate);
-    currentUrl.searchParams.set('end_date', endDate);
-    
-    window.location.href = currentUrl.toString();
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
 });
 
 // Initialize datepicker if using custom date range

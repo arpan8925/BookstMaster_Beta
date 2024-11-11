@@ -1956,18 +1956,26 @@ def edit_payment_method(request, method_id):
 
 @permission_required('authentication.is_manager', login_url='manager_login')
 def view_transaction(request, transaction_id):
-    transaction = get_object_or_404(Transaction, id=transaction_id)
-    return JsonResponse({
-        'id': transaction.id,
-        'user': transaction.user.email,
-        'amount': str(transaction.amount),
-        'fee': str(transaction.fee),
-        'total_amount': str(transaction.total_amount),
-        'payment_method': transaction.payment_method,
-        'status': transaction.status,
-        'created_at': transaction.created_at.strftime('%Y-%m-d %H:%M:%S'),
-        'description': transaction.description
-    })
+    try:
+        transaction = Transaction.objects.select_related('user').get(id=transaction_id)
+        data = {
+            'id': transaction.id,
+            'user': transaction.user.email,
+            'amount': str(transaction.amount),
+            'balance': str(transaction.user.balance),
+            'payment_method': transaction.payment_method or '-',
+            'transaction_id': transaction.transaction_id or '-',
+            'status': transaction.status,
+            'note': transaction.notes if hasattr(transaction, 'notes') else transaction.description if hasattr(transaction, 'description') else '-',
+            'created_at': transaction.created.strftime('%Y-%m-%d %H:%M:%S'),
+            'fee': str(transaction.fee) if hasattr(transaction, 'fee') else '0.00'
+        }
+        return JsonResponse(data)
+    except Transaction.DoesNotExist:
+        return JsonResponse({'error': 'Transaction not found'}, status=404)
+    except Exception as e:
+        print(f"Error in view_transaction: {str(e)}")  # For debugging
+        return JsonResponse({'error': 'Error loading transaction details'}, status=500)
 
 @permission_required('authentication.is_manager', login_url='manager_login')
 def approve_transaction(request, transaction_id):
