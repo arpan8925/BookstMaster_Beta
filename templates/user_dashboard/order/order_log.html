@@ -6,11 +6,50 @@
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Order Log</h5>
             <div>
-                <button class="btn btn-outline-primary me-2">Export</button>
-                <button class="btn btn-outline-primary">Filter</button>
+                <a href="?export=true" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-download"></i> Export
+                </a>
+                <button class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
             </div>
         </div>
     </div>
+    
+    <!-- Filter Section -->
+    <div class="collapse {% if filter_status or filter_date_from or filter_date_to or filter_search %}show{% endif %}" id="filterCollapse">
+        <div class="card-body border-bottom">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="processing" {% if filter_status == 'processing' %}selected{% endif %}>Processing</option>
+                        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="failed" {% if filter_status == 'failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ filter_date_from }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ filter_date_to }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="search" class="form-control" placeholder="Search orders..." value="{{ filter_search }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{% url 'order_log' %}" class="btn btn-outline-secondary">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card-body">
         <!-- Order Statistics -->
         <div class="row g-4 mb-4">
@@ -18,7 +57,7 @@
                 <div class="card bg-light">
                     <div class="card-body">
                         <h6 class="text-muted">Total Orders</h6>
-                        <h2 class="mb-0">855</h2>
+                        <h2 class="mb-0">{{ total_orders }}</h2>
                     </div>
                 </div>
             </div>
@@ -26,7 +65,7 @@
                 <div class="card bg-light">
                     <div class="card-body">
                         <h6 class="text-muted">Completed</h6>
-                        <h2 class="mb-0">600</h2>
+                        <h2 class="mb-0 text-success">{{ completed_orders }}</h2>
                     </div>
                 </div>
             </div>
@@ -34,7 +73,7 @@
                 <div class="card bg-light">
                     <div class="card-body">
                         <h6 class="text-muted">Pending</h6>
-                        <h2 class="mb-0">19</h2>
+                        <h2 class="mb-0 text-warning">{{ pending_orders }}</h2>
                     </div>
                 </div>
             </div>
@@ -42,42 +81,76 @@
                 <div class="card bg-light">
                     <div class="card-body">
                         <h6 class="text-muted">Failed</h6>
-                        <h2 class="mb-0">96</h2>
+                        <h2 class="mb-0 text-danger">{{ failed_orders }}</h2>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Orders Table -->
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
+        <div class="table-responsive" style="min-height: 300px; max-height: 600px; overflow-y: auto;">
+            <table class="table table-hover">
+                <thead style="position: sticky; top: 0; background: white; z-index: 1;">
                     <tr>
                         <th>Order ID</th>
-                        <th>API Order</th>
-                        <th>User</th>
-                        <th>Order Details</th>
+                        <th>Service</th>
+                        <th>Link</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
                         <th>Created</th>
                         <th>Status</th>
-                        <th>API Response</th>
-                        <th>Action</th>
+                        <th class="text-end">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for order in orders %}
                     <tr>
-                        <td>#{{ order.order_id }}</td>
-                        <td>{{ order.api_order }}</td>
-                        <td>{{ order.user }}</td>
-                        <td>{{ order.details }}</td>
-                        <td>{{ order.created }}</td>
-                        <td><span class="badge bg-warning">{{ order.status }}</span></td>
-                        <td>{{ order.api_response }}</td>
+                        <td>#{{ order.id }}</td>
+                        <td>{{ order.service.name }}</td>
                         <td>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch">
+                            <a href="{{ order.link }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;">
+                                {{ order.link }}
+                            </a>
+                        </td>
+                        <td>{{ order.quantity }}</td>
+                        <td>${{ order.price }}</td>
+                        <td>{{ order.created|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            {% if order.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                            {% elif order.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif order.status == 'processing' %}
+                                <span class="badge bg-info">Processing</span>
+                            {% elif order.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="bi bi-eye me-2"></i> View Details
+                                        </a>
+                                    </li>
+                                    {% if order.status == 'pending' %}
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#">
+                                            <i class="bi bi-x-circle me-2"></i> Cancel Order
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
                             </div>
                         </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">No orders found</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -85,15 +158,96 @@
         </div>
 
         <!-- Pagination -->
+        {% if orders.has_other_pages %}
         <nav class="mt-4">
             <ul class="pagination justify-content-end">
-                <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                {% if orders.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ orders.previous_page_number }}">&laquo; Previous</a>
+                    </li>
+                {% endif %}
+
+                {% for num in orders.paginator.page_range %}
+                    <li class="page-item {% if orders.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endfor %}
+
+                {% if orders.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ orders.next_page_number }}">Next &raquo;</a>
+                    </li>
+                {% endif %}
             </ul>
         </nav>
+        {% endif %}
     </div>
 </div>
+
+<style>
+/* Table Styles */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    border-top: none;
+    background-color: #f8f9fa;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+}
+
+/* Badge Styles */
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+
+/* Dropdown Styles */
+.dropdown-menu {
+    padding: 0.5rem 0;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+}
+
+.dropdown-item i {
+    width: 1rem;
+    text-align: center;
+}
+
+/* Scrollbar Styles */
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Hover Effects */
+.table tbody tr:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.btn-light:hover {
+    background-color: #e9ecef;
+}
+</style>
 {% endblock %} 

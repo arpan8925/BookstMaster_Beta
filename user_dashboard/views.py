@@ -258,18 +258,74 @@ def new_order(request):
 
 @login_required
 def order_log(request):
-    orders = [{
-        'order_id': '390480',
-        'api_order': 'API123',
-        'user': 'john_doe',
-        'details': 'YouTube subscribers lifetime - 750',
-        'created': '2024-11-04 05:25:04',
-        'status': 'In Progress',
-        'api_response': 'Success',
-    }]
+    # Get filter parameters
+    status = request.GET.get('status')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    search = request.GET.get('search')
+    
+    # Get all orders for the user
+    orders = Order.objects.filter(user=request.user)
+    
+    # Apply filters
+    if status:
+        orders = orders.filter(status=status)
+    if date_from:
+        orders = orders.filter(created__gte=date_from)
+    if date_to:
+        orders = orders.filter(created__lte=date_to)
+    if search:
+        orders = orders.filter(
+            models.Q(service__name__icontains=search) |
+            models.Q(link__icontains=search)
+        )
+    
+    # Calculate statistics
+    total_orders = orders.count()
+    completed_orders = orders.filter(status='completed').count()
+    pending_orders = orders.filter(status='pending').count()
+    failed_orders = orders.filter(status='failed').count()
+    
+    # Pagination
+    paginator = Paginator(orders, 10)  # Show 10 orders per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Handle export
+    if request.GET.get('export'):
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="orders.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Order ID', 'Service', 'Link', 'Quantity', 'Price', 'Status', 'Created'])
+        
+        for order in orders:
+            writer.writerow([
+                order.id,
+                order.service.name,
+                order.link,
+                order.quantity,
+                order.price,
+                order.status,
+                order.created.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        return response
+    
     context = {
         'active_tab': 'order',
-        'orders': orders
+        'orders': page_obj,
+        'total_orders': total_orders,
+        'completed_orders': completed_orders,
+        'pending_orders': pending_orders,
+        'failed_orders': failed_orders,
+        'filter_status': status,
+        'filter_date_from': date_from,
+        'filter_date_to': date_to,
+        'filter_search': search
     }
     return render(request, 'user_dashboard/order/order_log.html', context)
 
