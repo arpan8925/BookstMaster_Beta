@@ -693,120 +693,89 @@ def add_provider_funds(request):
 
 def payments(request):
 
+    from datetime import datetime, timedelta
+    
     # Get search query and filters
-
     search_query = request.GET.get('search', '')
-
+    search_type = request.GET.get('type', 'transaction_id')
     status_filter = request.GET.get('status', '')
-
     date_filter = request.GET.get('date', 'all')
-
     
-
-    # Base queryset with related user info - using the user_dashboard Transaction model
-
-    transactions = Transaction.objects.select_related('user').all().order_by('-created')
-
+    # Base queryset with related user info
+    transactions = Transaction.objects.select_related('user').all()
     
-
-    # Apply filters
-
+    # Apply search based on type
     if search_query:
-
-        transactions = transactions.filter(
-
-            Q(transaction_id__icontains=search_query) |
-
-            Q(user__email__icontains=search_query)
-
-        )
-
+        if search_type == 'transaction_id':
+            transactions = transactions.filter(transaction_id__icontains=search_query)
+        elif search_type == 'user':
+            transactions = transactions.filter(
+                Q(user__email__icontains=search_query) |
+                Q(user__username__icontains=search_query)
+            )
+        elif search_type == 'payment_id':
+            transactions = transactions.filter(payment_method__icontains=search_query)
     
-
-    if status_filter == 'paid':
-
-        transactions = transactions.filter(status='completed')
-
-    elif status_filter == 'waiting':
-
-        transactions = transactions.filter(status='waiting')
-
-    elif status_filter == 'cancelled':
-
-        transactions = transactions.filter(status='cancelled')
-
+    # Apply status filter
+    if status_filter:
+        if status_filter == 'paid':
+            transactions = transactions.filter(status='completed')
+        elif status_filter == 'waiting':
+            transactions = transactions.filter(status='waiting')
+        elif status_filter == 'cancelled':
+            transactions = transactions.filter(status='cancelled')
     
-
     # Apply date filter
-
+    today = timezone.now().date()
     if date_filter == 'today':
-
-        transactions = transactions.filter(created__date=timezone.now().date())
-
+        transactions = transactions.filter(created__date=today)
     elif date_filter == 'yesterday':
-
-        transactions = transactions.filter(created__date=timezone.now().date() - timedelta(days=1))
-
+        yesterday = today - timedelta(days=1)
+        transactions = transactions.filter(created__date=yesterday)
     elif date_filter == 'last7days':
-
-        transactions = transactions.filter(created__date__gte=timezone.now().date() - timedelta(days=7))
-
+        last_week = today - timedelta(days=7)
+        transactions = transactions.filter(created__date__gte=last_week)
     elif date_filter == 'last30days':
-
-        transactions = transactions.filter(created__date__gte=timezone.now().date() - timedelta(days=30))
-
+        last_month = today - timedelta(days=30)
+        transactions = transactions.filter(created__date__gte=last_month)
+    elif date_filter == 'custom':
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                # Add one day to end_date to include the entire day
+                end_date = end_date + timedelta(days=1)
+                transactions = transactions.filter(created__date__range=[start_date, end_date])
+            except ValueError:
+                pass
     
-
+    # Order by created date
+    transactions = transactions.order_by('-created')
+    
     # Calculate statistics
-
     total_count = transactions.count()
-
     total_amount = transactions.aggregate(Sum('amount'))['amount__sum'] or 0
-
     paid_count = transactions.filter(status='completed').count()
-
     waiting_count = transactions.filter(status='waiting').count()
-
     cancelled_count = transactions.filter(status='cancelled').count()
-
     
-
-    # Pagination
-
-    paginator = Paginator(transactions, 10)  # Show 10 transactions per page
-
-    page = request.GET.get('page')
-
-    transactions_page = paginator.get_page(page)
-
-    
-
     context = {
-
         'active_tab': 'payments',
-
-        'transactions': transactions_page,
-
-        'page_obj': transactions_page,
-
+        'transactions': transactions,
         'total_count': total_count,
-
         'total_amount': total_amount,
-
         'paid_count': paid_count,
-
         'waiting_count': waiting_count,
-
         'cancelled_count': cancelled_count,
-
         'search_query': search_query,
-
+        'search_type': search_type,
         'status_filter': status_filter,
-
-        'date_filter': date_filter
-
+        'date_filter': date_filter,
+        'start_date': request.GET.get('start_date', ''),
+        'end_date': request.GET.get('end_date', '')
     }
-
     return render(request, 'managerdashboard/payments.html', context)
 
 
@@ -2073,6 +2042,44 @@ def cancel_transaction(request, transaction_id):
         'status': 'error',
         'message': 'Invalid request method'
     }, status=405)
+
+@permission_required('authentication.is_manager', login_url='manager_login')
+def export_transactions(request):
+    import csv
+    from django.http import HttpResponse
+    
+    # Get filtered transactions
+    transactions = Transaction.objects.select_related('user').all()
+    
+    # Apply filters (same as in payments view)
+    # ... (copy filter logic from payments view)
+    
+    # Create the HttpResponse object with CSV header
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="transactions.csv"'
+    
+    # Create CSV writer
+    writer = csv.writer(response)
+    writer.writerow([
+        'Transaction ID', 'User', 'Amount', 'Fee', 'Total Amount',
+        'Payment Method', 'Status', 'Created', 'Description'
+    ])
+    
+    # Write data
+    for transaction in transactions:
+        writer.writerow([
+            transaction.transaction_id,
+            transaction.user.email,
+            transaction.amount,
+            transaction.fee,
+            transaction.total_amount,
+            transaction.payment_method,
+            transaction.status,
+            transaction.created.strftime('%Y-%m-%d %H:%M:%S'),
+            transaction.description
+        ])
+    
+    return response
 
 
 

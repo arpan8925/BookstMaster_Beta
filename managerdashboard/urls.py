@@ -118,6 +118,8 @@ urlpatterns = [
 
     path('transactions/<int:transaction_id>/', views.view_transaction, name='view_transaction'),
 
+    path('transactions/export/', views.export_transactions, name='export_transactions'),
+
 ]
 
 

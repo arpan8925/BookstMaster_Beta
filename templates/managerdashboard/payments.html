@@ -99,10 +99,10 @@
                     <div class="input-group">
                         <input type="text" class="form-control" id="transactionSearch" 
                                placeholder="Search transactions..." value="{{ search_query }}">
-                        <select class="form-select" style="max-width: 200px;">
-                            <option value="transaction_id">Transaction ID</option>
-                            <option value="user">User</option>
-                            <option value="payment_id">Payment ID</option>
+                        <select class="form-select" name="search_type" style="max-width: 200px;">
+                            <option value="transaction_id" {% if search_type == 'transaction_id' %}selected{% endif %}>Transaction ID</option>
+                            <option value="user" {% if search_type == 'user' %}selected{% endif %}>User</option>
+                            <option value="payment_id" {% if search_type == 'payment_id' %}selected{% endif %}>Payment ID</option>
                         </select>
                         <button class="btn btn-primary px-4" onclick="searchTransactions()">
                             <i class="bi bi-search"></i>
@@ -224,6 +224,36 @@
 
 <!-- Include transaction handlers JavaScript -->
 <script src="{% static 'js/transaction_handlers.js' %}"></script>
+
+<!-- Date Range Modal -->
+<div class="modal fade" id="dateRangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Date Range</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="dateRangeForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" name="start_date" 
+                               value="{{ start_date }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" name="end_date" 
+                               value="{{ end_date }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <style>
 /* Custom styles for payments page */
