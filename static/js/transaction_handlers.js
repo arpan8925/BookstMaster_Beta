@@ -54,11 +54,22 @@ function approveTransaction(transactionId) {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
             // Close modal and refresh page
-            bootstrap.Modal.getInstance(document.getElementById('viewTransactionModal')).hide();
+            const modalElement = document.getElementById('viewTransactionModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
             location.reload();
         } else {
             alert(data.message || 'Error approving transaction');

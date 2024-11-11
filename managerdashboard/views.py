@@ -17,6 +17,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.mail import send_mail as django_send_mail
 from django.conf import settings
 from decimal import Decimal, InvalidOperation
+from django.db import transaction
 from django.db import transaction as db_transaction
 from .models import (
     Provider, 
@@ -1981,7 +1982,7 @@ def view_transaction(request, transaction_id):
 def approve_transaction(request, transaction_id):
     if request.method == 'POST':
         try:
-            with transaction.atomic():
+            with transaction.atomic():  # Use Django's transaction.atomic() for atomic operations
                 txn = Transaction.objects.select_for_update().get(id=transaction_id)
                 
                 if txn.status != 'waiting':
@@ -2019,6 +2020,7 @@ def approve_transaction(request, transaction_id):
         'status': 'error',
         'message': 'Invalid request method'
     }, status=405)
+
 
 @permission_required('authentication.is_manager', login_url='manager_login')
 def cancel_transaction(request, transaction_id):
