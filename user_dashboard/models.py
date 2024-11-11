@@ -54,9 +54,7 @@ class Ticket(models.Model):
     uid = models.IntegerField(null=True, blank=True)
 
     ids = models.CharField(max_length=255, null=True, blank=True)
-
-
-
+    
     class Meta:
 
         ordering = ['-created']

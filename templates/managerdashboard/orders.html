@@ -164,7 +164,6 @@
                             <th>User</th>
                             <th style="min-width: 300px;">Order Details</th>
                             <th>Created</th>
-                            <th>API Response</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -203,21 +202,16 @@
                                         </div>
                                         <div class="d-flex gap-3">
                                             <span><i class="bi bi-hash me-1"></i>{{ order.quantity }}</span>
-                                            <span><i class="bi bi-currency-dollar me-1"></i>{{ order.charge }}</span>
-                                            <span><i class="bi bi-play-circle me-1"></i>{{ order.start_counter }}</span>
-                                            <span><i class="bi bi-arrow-clockwise me-1"></i>{{ order.remains }}</span>
+                                            <span><i class="bi bi-currency-dollar me-1"></i>{{ order.price }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 <div class="text-muted small">
-                                    {{ order.created_at|date:"M d, Y" }}<br>
-                                    {{ order.created_at|date:"H:i:s" }}
+                                    {{ order.created|date:"M d, Y" }}<br>
+                                    {{ order.created|date:"H:i:s" }}
                                 </div>
-                            </td>
-                            <td>
-                                <span class="text-muted">{{ order.api_response|default:"-" }}</span>
                             </td>
                             <td>
                                 {% if order.status == 'completed' %}
@@ -228,8 +222,8 @@
                                     <span class="badge bg-info-subtle text-info">Processing</span>
                                 {% elif order.status == 'canceled' %}
                                     <span class="badge bg-danger-subtle text-danger">Canceled</span>
-                                {% elif order.status == 'error' %}
-                                    <span class="badge bg-danger">Error</span>
+                                {% elif order.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
                                 {% else %}
                                     <span class="badge bg-secondary">{{ order.status }}</span>
                                 {% endif %}
@@ -241,25 +235,25 @@
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="viewOrder({{ order.id }})">
+                                            <button class="dropdown-item" onclick="viewOrder('{{ order.id }}')">
                                                 <i class="bi bi-eye me-2 text-primary"></i>View Details
-                                            </a>
+                                            </button>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="checkStatus({{ order.id }})">
+                                            <button class="dropdown-item" onclick="checkStatus('{{ order.id }}')">
                                                 <i class="bi bi-arrow-clockwise me-2 text-info"></i>Check Status
-                                            </a>
+                                            </button>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" href="#" onclick="resendOrder({{ order.id }})">
+                                            <button class="dropdown-item" onclick="resendOrder('{{ order.id }}')">
                                                 <i class="bi bi-send me-2 text-warning"></i>Resend Order
-                                            </a>
+                                            </button>
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
-                                            <a class="dropdown-item text-danger" href="#" onclick="cancelOrder({{ order.id }})">
+                                            <button class="dropdown-item text-danger" onclick="cancelOrder('{{ order.id }}')">
                                                 <i class="bi bi-x-circle me-2"></i>Cancel Order
-                                            </a>
+                                            </button>
                                         </li>
                                     </ul>
                                 </div>
@@ -267,7 +261,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="7" class="text-center py-5">
                                 <div class="text-muted">
                                     <i class="bi bi-inbox display-6 mb-3"></i>
                                     <p class="mb-0">No orders found</p>
@@ -281,33 +275,7 @@
             </div>
 
             <!-- Pagination -->
-            {% if orders.has_other_pages %}
-            <nav class="mt-4" aria-label="Orders pagination">
-                <ul class="pagination justify-content-center">
-                    {% if orders.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ orders.previous_page_number }}">
-                            <i class="bi bi-chevron-left"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    {% for num in orders.paginator.page_range %}
-                    <li class="page-item {% if orders.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
-                    {% endfor %}
-
-                    {% if orders.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ orders.next_page_number }}">
-                            <i class="bi bi-chevron-right"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
+            {% include 'managerdashboard/includes/pagination.html' with page_obj=orders %}
         </div>
     </div>
 </div>

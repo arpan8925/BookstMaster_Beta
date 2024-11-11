@@ -6,7 +6,7 @@ from django.db.models import Count, Sum
 
 from authentication.models import User
 
-from user_dashboard.models import Ticket, TicketMessage, Transaction
+from user_dashboard.models import Ticket, TicketMessage, Transaction, Order  # Import the existing Order model
 
 from django.core.paginator import Paginator
 from django.contrib import messages
@@ -76,9 +76,115 @@ def manager_dashboard(request):
 
 def orders(request):
 
+    # Get search query and filters
+
+    search_query = request.GET.get('search', '')
+
+    status_filter = request.GET.get('status', '')
+
+    date_filter = request.GET.get('date', 'today')
+
+    
+
+    # Base queryset with related user and service
+
+    orders = Order.objects.select_related('user', 'service').all()
+
+    
+
+    # Apply search filter
+
+    if search_query:
+
+        orders = orders.filter(
+
+            Q(id__icontains=search_query) |
+
+            Q(user__email__icontains=search_query) |
+
+            Q(link__icontains=search_query)
+
+        )
+
+    
+
+    # Apply status filter
+
+    if status_filter:
+
+        orders = orders.filter(status=status_filter)
+
+    
+
+    # Apply date filter
+
+    today = timezone.now().date()
+
+    if date_filter == 'today':
+
+        orders = orders.filter(created__date=today)
+
+    elif date_filter == 'yesterday':
+
+        yesterday = today - timedelta(days=1)
+
+        orders = orders.filter(created__date=yesterday)
+
+    elif date_filter == 'last7days':
+
+        last_week = today - timedelta(days=7)
+
+        orders = orders.filter(created__date__gte=last_week)
+
+    elif date_filter == 'last30days':
+
+        last_month = today - timedelta(days=30)
+
+        orders = orders.filter(created__date__gte=last_month)
+
+    
+
+    # Get counts for stats
+
+    total_orders = orders.count()
+
+    pending_orders = orders.filter(status='pending').count()
+
+    processing_orders = orders.filter(status='processing').count()
+
+    completed_orders = orders.filter(status='completed').count()
+
+    
+
+    # Pagination
+
+    paginator = Paginator(orders, 25)  # Show 25 orders per page
+
+    page_number = request.GET.get('page')
+
+    orders_page = paginator.get_page(page_number)
+
+    
+
     context = {
 
         'active_tab': 'orders',
+
+        'orders': orders_page,
+
+        'total_orders': total_orders,
+
+        'pending_orders': pending_orders,
+
+        'processing_orders': processing_orders,
+
+        'completed_orders': completed_orders,
+
+        'search_query': search_query,
+
+        'status_filter': status_filter,
+
+        'date_filter': date_filter
 
     }
 
