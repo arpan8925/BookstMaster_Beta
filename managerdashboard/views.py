@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
-from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.decorators import permission_required, login_required
 
 from django.db.models import Count, Sum
 
@@ -19,6 +19,7 @@ from django.conf import settings
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.db import transaction as db_transaction
+from django.views.decorators.http import require_POST
 from .models import (
     Provider, 
     ProviderTransaction,
@@ -2229,6 +2230,42 @@ def get_order_info(request, order_id):
         return JsonResponse({
             'error': f'Error fetching order details: {str(e)}'
         }, status=500)
+
+@login_required
+@require_POST
+def complete_order(request, order_id):
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        
+        # Check if user has permission to complete orders
+        if not request.user.is_staff:
+            return JsonResponse({
+                'success': False,
+                'message': 'You do not have permission to complete orders'
+            }, status=403)
+
+        # Check if order can be completed
+        if order.status not in ['pending', 'processing']:
+            return JsonResponse({
+                'success': False,
+                'message': 'This order cannot be completed'
+            }, status=400)
+
+        # Update order status
+        order.status = 'completed'
+        order.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Order marked as completed successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error completing order {order_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
 
 
 

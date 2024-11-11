@@ -9,24 +9,33 @@ function hideLoader() {
 }
 
 function viewOrder(orderId) {
-    // Show the modal immediately
+    // Show the modal immediately with loading state
     const modal = new bootstrap.Modal(document.getElementById('viewOrderModal'));
     modal.show();
     
-    // Show loading state
+    // Set loading state
     setModalLoadingState();
     
     // Fetch order details
     fetch(`/managerdashboard/orders/${orderId}/get-info/`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            console.log('Received data:', data); // Debug log
             updateModalWithData(data);
+            
+            // Update action buttons based on status
+            const actionButtons = document.getElementById('order-action-buttons');
+            actionButtons.innerHTML = '';
+            
+            if (data.status === 'pending') {
+                actionButtons.innerHTML = `
+                    <button class="btn btn-success" onclick="completeOrder(${orderId})">
+                        <i class="bi bi-check-circle me-2"></i>Complete Order
+                    </button>
+                    <button class="btn btn-danger" onclick="cancelOrder(${orderId})">
+                        <i class="bi bi-x-circle me-2"></i>Cancel Order
+                    </button>
+                `;
+            }
         })
         .catch(error => {
             console.error('Error:', error);
@@ -159,7 +168,7 @@ function cancelOrder(orderId) {
     
     showLoader('Canceling order...');
     
-    fetch(`/manager/orders/${orderId}/cancel/`, {
+    fetch(`/managerdashboard/orders/${orderId}/cancel/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': csrftoken
@@ -180,6 +189,40 @@ function cancelOrder(orderId) {
     })
     .finally(() => {
         hideLoader();
+    });
+}
+
+function completeOrder(orderId) {
+    if (!confirm('Are you sure you want to mark this order as completed?')) {
+        return;
+    }
+
+    fetch(`/managerdashboard/orders/${orderId}/complete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert('Order completed successfully');
+            // Refresh the page to show updated status
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to complete the order');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while completing the order');
     });
 }
 

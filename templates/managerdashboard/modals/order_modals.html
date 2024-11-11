@@ -1,73 +1,41 @@
-<!-- View Order Modal -->
-<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- Order Details Modal -->
+<div class="modal fade" id="viewOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Order Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="order-info">
-                    <!-- Order Information -->
-                    <div class="mb-4">
-                        <h6 class="text-muted mb-3">Order Information</h6>
-                        <div class="row g-3">
-                            <div class="col-6">
-                                <label class="small text-muted d-block">Order ID</label>
-                                <span id="modal-order-id" class="fw-medium"></span>
-                            </div>
-                            <div class="col-6">
-                                <label class="small text-muted d-block">Status</label>
-                                <span id="modal-order-status"></span>
-                            </div>
-                            <div class="col-6">
-                                <label class="small text-muted d-block">Created Date</label>
-                                <span id="modal-order-date"></span>
-                            </div>
-                            <div class="col-6">
-                                <label class="small text-muted d-block">Last Updated</label>
-                                <span id="modal-order-updated"></span>
-                            </div>
-                        </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6>Order Information</h6>
+                        <p><strong>Order ID:</strong> <span id="modal-order-id"></span></p>
+                        <p><strong>Status:</strong> <span id="modal-order-status"></span></p>
+                        <p><strong>Created:</strong> <span id="modal-order-date"></span></p>
+                        <p><strong>Last Updated:</strong> <span id="modal-order-updated"></span></p>
                     </div>
-
-                    <!-- Service Details -->
-                    <div class="mb-4">
-                        <h6 class="text-muted mb-3">Service Details</h6>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="small text-muted d-block">Service Name</label>
-                                <span id="modal-service-name" class="fw-medium"></span>
-                            </div>
-                            <div class="col-6">
-                                <label class="small text-muted d-block">Quantity</label>
-                                <span id="modal-order-quantity"></span>
-                            </div>
-                            <div class="col-6">
-                                <label class="small text-muted d-block">Price</label>
-                                <span id="modal-order-price"></span>
-                            </div>
-                            <div class="col-12">
-                                <label class="small text-muted d-block">Link</label>
-                                <a id="modal-order-link" href="#" target="_blank" class="text-break"></a>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <h6>Service Details</h6>
+                        <p><strong>Service:</strong> <span id="modal-service-name"></span></p>
+                        <p><strong>Quantity:</strong> <span id="modal-order-quantity"></span></p>
+                        <p><strong>Price:</strong> <span id="modal-order-price"></span></p>
                     </div>
-
-                    <!-- Customer Information -->
-                    <div class="mb-4">
-                        <h6 class="text-muted mb-3">Customer Information</h6>
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="small text-muted d-block">Email</label>
-                                <span id="modal-user-email"></span>
-                            </div>
-                        </div>
+                    <div class="col-12">
+                        <h6>Link</h6>
+                        <p><a href="#" id="modal-order-link" target="_blank"></a></p>
+                    </div>
+                    <div class="col-12">
+                        <h6>User Information</h6>
+                        <p><strong>Email:</strong> <span id="modal-user-email"></span></p>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div id="order-action-buttons">
+                    <!-- Action buttons will be added here based on order status -->
+                </div>
             </div>
         </div>
     </div>
