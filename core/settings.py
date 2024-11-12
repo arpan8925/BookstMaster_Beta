@@ -31,7 +31,8 @@ INSTALLED_APPS = [  # Our apps
     'frontend',
     'user_dashboard',
     'authentication',
-    'managerdashboard' 
+    'managerdashboard',
+    'django_extensions',
     ]
 
 MIDDLEWARE = [

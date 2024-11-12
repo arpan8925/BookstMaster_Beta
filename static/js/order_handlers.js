@@ -162,35 +162,42 @@ function resendOrder(orderId) {
     });
 }
 
-// Function to cancel order
 function cancelOrder(orderId) {
     if (!confirm('Are you sure you want to cancel this order?')) return;
-    
+
     showLoader('Canceling order...');
-    
-    fetch(`/managerdashboard/orders/${orderId}/cancel/`, {
+
+    fetch(`/manager/orders/${orderId}/cancel/`, {
         method: 'POST',
         headers: {
+            'Content-Type': 'application/json',
             'X-CSRFToken': csrftoken
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
-        if (data.status === 'success') {
+        if (data.success) {
             alert('Order canceled successfully');
             location.reload();
         } else {
-            alert(data.error || 'Error canceling order');
+            alert(data.message || 'Failed to cancel order');
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error canceling order');
+        console.error('There was a problem with the fetch operation:', error);
+        alert('An error occurred while canceling the order');
     })
     .finally(() => {
         hideLoader();
     });
 }
+
+
 
 function completeOrder(orderId) {
     if (!confirm('Are you sure you want to mark this order as completed?')) {

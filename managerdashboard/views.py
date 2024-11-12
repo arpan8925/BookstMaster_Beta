@@ -2265,6 +2265,47 @@ def complete_order(request, order_id):
             'success': False,
             'message': str(e)
         }, status=500)
+    
+
+
+@login_required
+@require_POST
+def cancel_order(request, order_id):
+
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"CSRF Token: {request.META.get('HTTP_X_CSRFTOKEN')}")
+
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        
+        # Check if user has permission to cancel orders
+        if not request.user.is_staff:
+            return JsonResponse({
+                'success': False,
+                'message': 'You do not have permission to cancel orders'
+            }, status=403)
+
+        # Check if order can be canceled
+        if order.status not in ['processing', 'pending']:
+            return JsonResponse({
+                'success': False,
+                'message': 'This order cannot be canceled'
+            }, status=400)
+
+        # Update order status
+        order.status = 'canceled'
+        order.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Order marked as canceled successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error canceling order {order_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
 
 
 
