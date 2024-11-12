@@ -285,6 +285,9 @@ def order_log(request):
     completed_orders = orders.filter(status='completed').count()
     pending_orders = orders.filter(status='pending').count()
     failed_orders = orders.filter(status='failed').count()
+    processing_orders = orders.filter(status='processing').count()
+    canceled_orders = orders.filter(status='canceled').count()
+    refunded_orders = orders.filter(status='refunded').count()
     
     # Pagination
     paginator = Paginator(orders, 10)  # Show 10 orders per page
@@ -322,6 +325,9 @@ def order_log(request):
         'completed_orders': completed_orders,
         'pending_orders': pending_orders,
         'failed_orders': failed_orders,
+        'processing_orders': processing_orders,
+        'canceled_orders': canceled_orders,
+        'refunded_orders': refunded_orders,
         'filter_status': status,
         'filter_date_from': date_from,
         'filter_date_to': date_to,

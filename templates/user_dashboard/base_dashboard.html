@@ -332,7 +332,21 @@
 
     <!-- Content -->
     <div id="content">
+        <button class="btn btn-primary d-md-none mb-3" id="sidebarToggle">
+            <i class="bi bi-list"></i> Menu
+        </button>
         {% block dashboard_content %}{% endblock %}
     </div>
 </div>
+
+<script>
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar.style.marginLeft === '0px') {
+        sidebar.style.marginLeft = `calc(-1 * var(--sidebar-width))`;
+    } else {
+        sidebar.style.marginLeft = '0px';
+    }
+});
+</script>
 {% endblock %} 

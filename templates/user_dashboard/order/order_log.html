@@ -85,6 +85,30 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Processing</h6>
+                        <h2 class="mb-0 text-info">{{ processing_orders }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Canceled</h6>
+                        <h2 class="mb-0 text-secondary">{{ canceled_orders }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Refunded</h6>
+                        <h2 class="mb-0 text-dark">{{ refunded_orders }}</h2>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Orders Table -->
@@ -124,6 +148,10 @@
                                 <span class="badge bg-info">Processing</span>
                             {% elif order.status == 'failed' %}
                                 <span class="badge bg-danger">Failed</span>
+                            {% elif order.status == 'canceled' %}
+                                <span class="badge bg-secondary">Canceled</span>
+                            {% elif order.status == 'refunded' %}
+                                <span class="badge bg-dark">Refunded</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
