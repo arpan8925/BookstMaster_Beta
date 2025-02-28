@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base/base.html' %}
 {% load static %}
 
 {% block content %}
@@ -283,7 +283,7 @@
             </a>
 
             <div class="nav-section">ORDERS</div>
-            <a href="{% url 'new_order' %}" class="nav-link {% if active_tab == 'new_order' %}active{% endif %}">
+            <a href="#" class="nav-link {% if active_tab == 'new_order' %}active{% endif %}">
                 <i class="bi bi-plus-circle"></i>
                 <span>New Order</span>
             </a>

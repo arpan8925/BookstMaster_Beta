@@ -8,63 +8,41 @@ from datetime import timedelta
 from decimal import Decimal
 import uuid
 
+
+
+
 # Create your models here.
 class Ticket(models.Model):
-
     STATUS_CHOICES = [
-
         ('pending', 'Pending'),
-
         ('in_progress', 'In Progress'),
-
         ('completed', 'Completed'),
-
         ('closed', 'Closed'),
-
     ]
 
     PRIORITY_CHOICES = [
-
         ('low', 'Low'),
-
         ('medium', 'Medium'),
-
         ('high', 'High'),
-
     ]
 
 
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets')
-
     subject = models.CharField(max_length=200)
-
     description = models.TextField()
-
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
-
     created = models.DateTimeField(auto_now_add=True)
-
     changed = models.DateTimeField(auto_now=True)
-
     unread = models.BooleanField(default=True)
-
     uid = models.IntegerField(null=True, blank=True)
-
-    ids = models.CharField(max_length=255, null=True, blank=True)
-    
+    ids = models.CharField(max_length=255, null=True, blank=True)    
     class Meta:
-
         ordering = ['-created']
-
         db_table = 'tickets'
 
-
-
     def __str__(self):
-
         return f"#{self.id} - {self.subject}"
 
     def delete_if_old(self):
@@ -107,83 +85,20 @@ def check_old_tickets(sender, instance, **kwargs):
 class TicketMessage(models.Model):
 
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='messages')
-
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-
     message = models.TextField()
-
     created = models.DateTimeField(auto_now_add=True)
-
     changed = models.DateTimeField(auto_now=True)
-
     is_read = models.BooleanField(default=False)
-
     uid = models.IntegerField(null=True, blank=True)
-
     ids = models.CharField(max_length=255, null=True, blank=True)
 
-
-
     class Meta:
-
         ordering = ['created']
-
         db_table = 'ticket_messages'
 
-
-
     def __str__(self):
-
         return f"Message for Ticket #{self.ticket.id}"
-
-
-
-class Transaction(models.Model):
-    STATUS_CHOICES = [
-        ('waiting', 'Waiting'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('refunded', 'Refunded')
-    ]
-
-    user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='user_transactions'
-    )
-    transaction_id = models.CharField(
-        max_length=100, 
-        unique=True, 
-        null=True,  
-        blank=True
-    )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    fee = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=50)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting')
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-    description = models.TextField(null=True, blank=True)
-    
-    class Meta:
-        ordering = ['-created']
-        db_table = 'transactions'
-
-    def save(self, *args, **kwargs):
-        if not self.transaction_id:
-            self.transaction_id = self.generate_transaction_id()
-        if not self.total_amount:
-            self.total_amount = self.amount + self.fee
-        super().save(*args, **kwargs)
-
-    def generate_transaction_id(self):
-        timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
-        random_string = str(uuid.uuid4()).split('-')[0]
-        return f"TXN-{timestamp}-{random_string}"
-
-    def __str__(self):
-        return f"{self.transaction_id} - {self.user.username} - ${self.amount}"
 
 
 

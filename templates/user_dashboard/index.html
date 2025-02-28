@@ -1,0 +1,271 @@
+{% extends 'user_dashboard/base.html' %}
+{% load static %}
+{% block content %}
+<!--start main content-->
+<main class="page-content">
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-xl-4 row-cols-xxl-4">
+    <div class="col">
+      <div class="card radius-10 border-0 border-start border-primary border-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="">
+              <p class="mb-1">Total Orders</p>
+              <h4 class="mb-0 text-primary">248</h4>
+            </div>
+            <div class="ms-auto widget-icon bg-primary text-white">
+              <i class="bi bi-basket2-fill"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 4.5px">
+            <div class="progress-bar" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0"
+              aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card radius-10 border-0 border-start border-success border-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="">
+              <p class="mb-1">Total Spend</p>
+              <h4 class="mb-0 text-success">$1,245</h4>
+            </div>
+            <div class="ms-auto widget-icon bg-success text-white">
+              <i class="bi bi-currency-dollar"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 4.5px">
+            <div class="progress-bar bg-success" role="progressbar" style="width: 75%" aria-valuenow="75"
+              aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card radius-10 border-0 border-start border-danger border-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="">
+              <p class="mb-1">Loyality Level</p>
+              <h4 class="mb-0 text-danger">24.25%</h4>
+            </div>
+            <div class="ms-auto widget-icon bg-danger text-white">
+              <i class="bi bi-graph-down-arrow"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 4.5px">
+            <div class="progress-bar bg-danger" role="progressbar" style="width: 75%" aria-valuenow="75"
+              aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card radius-10 border-0 border-start border-warning border-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="">
+              <p class="mb-1">Account Balance</p>
+              <h4 class="mb-0 text-warning">{{ user_balance }} USD</h4>
+            </div>
+            <div class="ms-auto widget-icon bg-warning text-dark">
+              <i class="bi bi-people-fill"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 4.5px">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: 75%" aria-valuenow="75"
+              aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--end row-->
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">New Order</h5>
+          <div class="row g-3">
+
+            <!-- Category Dropdown -->
+            <div class="col-12">
+              <label for="categorySelect" class="form-label fw-bold">Category</label>
+              <select class="form-select" id="categorySelect">
+                <option value="" disabled selected>Select a category</option>
+                {% for cat_id, cat_data in categories.items %}
+                <option value="{{ cat_id }}">{{ cat_data.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Service Dropdown -->
+            <div class="col-12">
+              <label for="serviceSelect" class="form-label fw-bold">Service</label>
+              <select class="form-select" id="serviceSelect">
+                <option value="" disabled selected>Select a service</option>
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="col-12" id="descriptionContainer" style="display: none;">
+              <label class="form-label fw-bold">Description</label>
+              <div class="d-flex align-items-center gap-2">
+                <div class="btn btn-sm btn-light border shadow-sm" id="serviceDescription">
+                  <!-- Description will be populated dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <script>
+              // Initialize services data
+              const servicesByCategory = {
+                {% for cat_id, cat_data in categories.items %}
+                  "{{ cat_id }}": [
+                  {% for service in cat_data.services %}
+                    {
+                    id: "{{ service.id }}",
+                    name: "{{ service.name|escapejs }}",
+                    desc: `{{ service.desc|escapejs }}`,
+                    price: {{ service.price }},
+                    min: {{ service.min }},
+                    max: {{ service.max }}
+                    },
+                  {% endfor %}
+                  ],
+                {% endfor %}
+                };
+                
+                // Get DOM elements
+                const descriptionContainer = document.getElementById('descriptionContainer');
+                const serviceDescription = document.getElementById('serviceDescription');
+                
+                // Category change handler
+                document.getElementById('categorySelect').addEventListener('change', function() {
+                const categoryId = this.value;
+                const serviceSelect = document.getElementById('serviceSelect');
+                serviceSelect.innerHTML = '<option value="" disabled selected>Select a service</option>';
+                descriptionContainer.style.display = 'none';
+                
+                if (servicesByCategory[categoryId]) {
+                  servicesByCategory[categoryId].forEach(service => {
+                  const option = new Option(service.name, service.id);
+                  serviceSelect.add(option);
+                  });
+                }
+                });
+                
+                // Service change handler
+                let selectedService = null;
+                document.getElementById('serviceSelect').addEventListener('change', function() {
+                const serviceId = this.value;
+                const categoryId = document.getElementById('categorySelect').value;
+                selectedService = servicesByCategory[categoryId].find(s => s.id === serviceId);
+                
+                if (selectedService) {
+                  serviceDescription.innerHTML = selectedService.desc;
+                  
+                  // Show/hide description container
+                  if (selectedService.desc.trim()) {
+                  descriptionContainer.style.display = 'block';
+                  } else {
+                  descriptionContainer.style.display = 'none';
+                  }
+                  
+                  document.getElementById('quantityLabel').textContent = 
+                  `Min: ${selectedService.min} - Max: ${selectedService.max}`;
+                  document.getElementById('chargeAmount').textContent = '0.00$';
+                } else {
+                  descriptionContainer.style.display = 'none';
+                }
+                });
+                
+                // Quantity input handler
+                document.getElementById('quantityInput').addEventListener('input', function() {
+                if (!selectedService) return;
+                const quantity = parseFloat(this.value) || 0;
+                const charge = quantity * selectedService.price;
+                document.getElementById('chargeAmount').textContent = `${charge.toFixed(2)}$`;
+                });
+                
+                // Trigger initial category load
+                document.getElementById('categorySelect').dispatchEvent(new Event('change'));
+            </script>
+
+            <!-- Link Input -->
+            <div class="col-12">
+              <label for="linkInput" class="form-label fw-bold">Link</label>
+              <input type="text" class="form-control" id="linkInput" placeholder="Enter link" />
+            </div>
+
+            <!-- Quantity Input -->
+            <div class="col-12">
+              <label for="quantityInput" class="form-label fw-bold">Quantity</label>
+              <input type="number" class="form-control" id="quantityInput" placeholder="Enter quantity" />
+              <label id="quantityLabel" class="form-label">Min: - Max: </label>
+            </div>
+
+            <!-- Average Time -->
+            <div class="col-12">
+              <label class="form-label fw-bold">Average time</label>
+              <span class="form-control" id="averageTime">-</span>
+            </div>
+
+            <!-- Charge -->
+            <div class="col-12">
+              <label class="form-label fw-bold">Charge</label>
+              <span class="form-control" id="chargeAmount">0.00$</span>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-12">
+              <div class="d-grid">
+                <button type="button" class="btn btn-primary">Submit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-transparent">
+          <div class="d-flex align-items-center">
+            <div class="">
+              <h6 class="mb-0 fw-bold">Latest Orders</h6>
+            </div>
+            <div class="dropdown ms-auto">
+              <button type="button" class="btn-option dropdown-toggle dropdown-toggle-nocaret cursor-pointer"
+                data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots fs-4"></i>
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="javascript:;">Action</a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="javascript:;">Another action</a>
+                </li>
+                <li>
+                  <hr class="dropdown-divider" />
+                </li>
+                <li>
+                  <a class="dropdown-item" href="javascript:;">Something else here</a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          কিছু একটা দেবো এখানে, নিউজ টাইপ বা কতগুলা অর্ডার চলতেসে , এই ধরনের কিছু
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--end row-->
+
+</main>
+<!--end main content-->
+{% endblock %}

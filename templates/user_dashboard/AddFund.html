@@ -1,0 +1,271 @@
+{% extends 'user_dashboard/base.html' %}
+{% load static %}
+{% block content %}
+
+<!--start main content-->
+<main class="page-content">
+  <!--end row-->
+
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="mb-3">Add Fund</h5>
+          <!-- AddFund.html -->
+          <form method="POST" action="{% url 'add_funds' %}">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-12">
+                <label for="paymentMethod" class="form-label fw-bold">Payment Method</label>
+                <select class="form-select" id="paymentMethod" name="payment_method" required>
+                  <option value="" selected disabled>Select a Payment Method</option>
+                  {% for method in payment_methods %}
+                  <option value="{{ method.id }}" data-min-amount="{{ method.min_amount }}"
+                    data-fee-type="{{ method.fee_type|default:'none' }}"
+                    data-fee-percentage="{{ method.fee_percentage|default:0 }}"
+                    data-fee-fixed="{{ method.fee_fixed|default:0 }}"
+                    data-exchange-rate="{{ method.exchng_rate }}">
+                    {{ method.name }} {% if method.test_mode %}(Test Mode){% endif %}
+                  </option>
+                  {% empty %}
+                  <option value="">No payment methods available</option>
+                  {% endfor %}
+                </select>
+          
+                {% if form.payment_method.errors %}
+                <div class="text-danger">{{ form.payment_method.errors }}</div>
+                {% endif %}
+              </div>
+          
+              <div class="col-12">
+                <label class="form-label fw-bold">Description</label>
+                <div class="payment-description border p-2">
+                  {% for method in payment_methods %}
+                  <div class="method-desc" id="desc-{{ method.id }}" style="display: none;">
+                    {{ method.desc|safe }}
+                  </div>
+                  {% endfor %}
+                  <div id="no-desc" style="display: {% if payment_methods %}none{% else %}block{% endif %};">
+                    No description available
+                  </div>
+                </div>
+              </div>
+          
+              <div class="col-12">
+                <label for="amount" class="form-label fw-bold">Amount</label>
+                <div class="d-flex align-items-center gap-3">
+                  <div class="flex-grow-1">
+                    <div class="input-group mt-3">
+                      <span class="input-group-text">$</span>
+                      <input type="number" class="form-control" id="amount" name="amount" step="0.01" placeholder="USD" min="0" required>
+                    </div>
+                    {% if form.amount.errors %}
+                    <div class="text-danger">{{ form.amount.errors }}</div>
+                    {% endif %}
+                  </div>
+          
+                  <div class="flex-grow-1">
+                    <div class="input-group">
+                      <span class="input-group-text">৳</span>
+                      <input type="text" class="form-control" id="bdtAmount" placeholder="BDT" readonly>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <small class="text-muted" id="feeDisplay"></small><br>
+                  <small class="text-muted" id="minAmountDisplay"></small>
+                </div>
+              </div>
+          
+              <div class="col-12">
+                <div class="row align-items-center g-3">
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      {{ form.terms }}
+                      <label class="form-check-label" for="termsCheck">
+                        I agree to the Terms & Conditions
+                      </label>
+                    </div>
+                    {% if form.terms.errors %}
+                    <div class="text-danger">{{ form.terms.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-decoration-none">View Terms</a>
+                  </div>
+                </div>
+              </div>
+          
+              <div class="col-12">
+                <div class="d-grid">
+                  <button type="submit" class="btn btn-primary">
+                    Add Fund
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+          
+          <!-- Include your JavaScript for dynamic behavior here -->
+          <script>
+            document.addEventListener('DOMContentLoaded', function() {
+              const paymentMethod = document.getElementById('paymentMethod');
+              const amountInput = document.getElementById('amount');
+              const bdtAmount = document.getElementById('bdtAmount');
+              const feeDisplay = document.getElementById('feeDisplay');
+              const minAmountDisplay = document.getElementById('minAmountDisplay');
+          
+              function updateCalculations() {
+                const selectedOption = paymentMethod.options[paymentMethod.selectedIndex];
+                const exchangeRate = parseFloat(selectedOption.getAttribute('data-exchange-rate')) || 1;
+                const feeType = selectedOption.getAttribute('data-fee-type');
+                const feePercentage = parseFloat(selectedOption.getAttribute('data-fee-percentage')) || 0;
+                const feeFixed = parseFloat(selectedOption.getAttribute('data-fee-fixed')) || 0;
+                const minAmount = parseFloat(selectedOption.getAttribute('data-min-amount')) || 0;
+          
+                const amount = parseFloat(amountInput.value) || 0;
+                let fee = 0;
+          
+                if (feeType === 'percentage') {
+                  fee = amount * (feePercentage / 100);
+                } else if (feeType === 'fixed') {
+                  fee = feeFixed;
+                } else {
+                  fee = (amount * (feePercentage / 100)) + feeFixed;
+                }
+          
+                const total = amount + fee;
+                const bdtTotal = total * exchangeRate;
+          
+                bdtAmount.value = bdtTotal.toFixed(2);
+                feeDisplay.textContent = `Fee: $${fee.toFixed(2)}`;
+                minAmountDisplay.textContent = `Minimum Amount: $${minAmount.toFixed(2)}`;
+                amountInput.min = minAmount;
+              }
+          
+              paymentMethod.addEventListener('change', function() {
+                const selectedOption = paymentMethod.options[paymentMethod.selectedIndex];
+                const methodId = selectedOption.value;
+          
+                document.querySelectorAll('.method-desc').forEach(function(desc) {
+                  desc.style.display = 'none';
+                });
+          
+                const selectedDesc = document.getElementById(`desc-${methodId}`);
+                if (selectedDesc) {
+                  selectedDesc.style.display = 'block';
+                }
+          
+                updateCalculations();
+              });
+          
+              amountInput.addEventListener('input', updateCalculations);
+          
+              if (paymentMethod && amountInput) {
+                updateCalculations();
+              }
+            });
+          </script>
+          
+          <!--end row-->
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card">
+        <div class="card-header bg-transparent">
+          <div class="d-flex align-items-center">
+            <div class="">
+              <h6 class="mb-0 fw-bold">Payment History</h6>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-borderless table-striped table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="small text-muted fw-normal">Date</th>
+                  <th class="small text-muted fw-normal">Payment Method</th>
+                  <th class="small text-muted fw-normal text-end">Amount</th>
+                  <th class="small text-muted fw-normal text-end">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Sample Data Rows -->
+                <tr>
+                  <td class="small">2023-08-15</td>
+                  <td>Bkash</td>
+                  <td class="text-end fw-bold">$49.99</td>
+                  <td class="text-end"><span class="badge bg-success">Completed</span></td>
+                </tr>
+                <tr>
+                  <td class="small">2023-08-12</td>
+                  <td>Nagad</td>
+                  <td class="text-end fw-bold">$12.99</td>
+                  <td class="text-end"><span class="badge bg-warning">Pending</span></td>
+                </tr>
+                <tr>
+                  <td class="small">2023-08-10</td>
+                  <td>Upay</td>
+                  <td class="text-end fw-bold">$29.99</td>
+                  <td class="text-end"><span class="badge bg-success">Completed</span></td>
+                </tr>
+                <tr>
+                  <td class="small">2023-08-05</td>
+                  <td>Credit Card</td>
+                  <td class="text-end fw-bold">$8.99</td>
+                  <td class="text-end"><span class="badge bg-danger">Failed</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--end row-->
+
+  <!-- Search Modal -->
+  <div class="modal" id="exampleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header gap-2">
+          <div class="position-relative popup-search w-100">
+            <input class="form-control form-control-lg ps-5 border border-3 border-primary" type="search"
+              placeholder="Search" />
+            <span
+              class="material-symbols-outlined position-absolute ms-3 translate-middle-y start-0 top-50">search</span>
+          </div>
+          <button type="button" class="btn-close d-xl-none" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="search-list">
+            <div class="list-group">
+              <a href="javascript:;"
+                class="list-group-item list-group-item-action active align-items-center d-flex gap-2"><i
+                  class="bi bi-filetype-html fs-5"></i>HIGH QUALITY
+                Instagram Followers | Instant Start | Non Drop | Good
+                Quality Accounts
+              </a>
+              <a href="javascript:;" class="list-group-item list-group-item-action align-items-center d-flex gap-2"><i
+                  class="bi bi-award fs-5"></i>❤️Instagram Followers 100%
+                NON DROP [OLD Accounts] Speed - 100K Per Day | Refill 100
+                Days | All Links Working</a>
+              <a href="javascript:;" class="list-group-item list-group-item-action align-items-center d-flex gap-2"><i
+                  class="bi bi-box2-heart fs-5"></i>Instagram
+                Follower[50K/D] [Flag Off] [0-5 MIN] [ 365 Days Refill ]
+                Templates</a>
+              <a href="javascript:;" class="list-group-item list-group-item-action align-items-center d-flex gap-2"><i
+                  class="bi bi-camera-video fs-5"></i> Instagram Followers
+                [NEW CHEAP] [50K+/D] [OLD MIX] Templates</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<!--end main content-->
+
+{% endblock %}

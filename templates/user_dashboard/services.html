@@ -1,78 +1,116 @@
-{% extends 'user_dashboard/base_dashboard.html' %}
+{% extends 'user_dashboard/base.html' %}
+{% load static %}
+{% block content %}
 
-{% block dashboard_content %}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Services</h5>
-        <div>
-            <select class="form-select form-select-sm" style="width: 200px;">
-                <option>Sort by</option>
-                <option>Name</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
-            </select>
-        </div>
+<!--start main content-->
+<main class="page-content">
+
+  <div class="row g-3">
+    <div class="col-auto">
+      <div class="position-relative">
+        <input class="form-control px-5" type="search" placeholder="Search Available Services">
+        <span
+          class="material-symbols-outlined position-absolute ms-3 translate-middle-y start-0 top-50 fs-5">search</span>
+      </div>
     </div>
+    <div class="col-auto flex-grow-1 overflow-auto">
+      <div class="btn-group position-static">
+        <div class="btn-group position-static">
+          <button type="button" class="btn border btn-light dropdown-toggle px-4" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            Category
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="javascript:;">Instagram Likes</a></li>
+            <li><a class="dropdown-item" href="javascript:;">Instagram Likes</a></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="javascript:;">Youtube Subscribers</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div><!--end row-->
+
+  <div class="card mt-4">
     <div class="card-body">
-        <!-- New Update Service Section -->
-        <div class="mb-4">
-            <h6 class="border-bottom pb-2">New Update service</h6>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Rate Per 1000($)</th>
-                            <th>Min / Max Order</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for service in services %}
-                        <tr>
-                            <td>{{ service.id }}</td>
-                            <td>{{ service.name }}</td>
-                            <td>{{ service.rate }}</td>
-                            <td>{{ service.min_max }}</td>
-                            <td>
-                                <button class="btn btn-sm btn-info">Details</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+      <div class="customer-table">
+        <div class="table-responsive white-space-nowrap">
+          <table class="table align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>
 
-        <!-- Boostmasterbdpro Big Seller Section -->
-        <div>
-            <h6 class="border-bottom pb-2">Boostmasterbdpro Big Seller [Api 💫]</h6>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Rate Per 1000($)</th>
-                            <th>Min / Max Order</th>
-                            <th>Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>26083</td>
-                            <td>Facebook Post Likes [ HQ ⭐ ] [ 5-10k/D ] [ Few Drop ] [ Extra ] [ Fast ⚡ ] [ Instant ]</td>
-                            <td>0.30</td>
-                            <td>50 / 1000</td>
-                            <td>
-                                <button class="btn btn-sm btn-info">Details</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                </th>
+                <th>ID</th>
+                <th>Service</th>
+                <th>Rate per 1000 </th>
+                <th>Min order</th>
+                <th>Max order</th>
+                <th>Average time</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for service in services %}
+              <tr>
+                <td>
+                  <input class="form-check-input" type="checkbox">
+                </td>
+                <td>
+                  <p class="mb-0 customer-name fw-bold">{{ service.id }}</p>
+                </td>
+                <td>
+                  <p class="mb-0 customer-name">{{ service.name }}</p>
+                </td>
+                <td>₹{{ service.price|floatformat:2 }}</td>  <!-- Dynamic price -->
+                <td>{{ service.min }}</td>  <!-- Dynamic min order -->
+                <td>{{ service.max }}</td>  <!-- Dynamic max order -->
+                <td>88 hours 13 minutes</td>  <!-- You'll need to add this field to your model -->
+                <td>
+                  <!-- Unique modal ID per service -->
+                  <button class="btn btn-primary ms-2" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#serviceModal-{{ service.id }}" 
+                          type="button">
+                    View
+                  </button>
+            
+                  <!-- Service-specific modal -->
+                  <div class="modal fade" id="serviceModal-{{ service.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h6 class="modal-title">Service Details</h6>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <div style="...">  <!-- Consider moving CSS to stylesheet -->
+                            {{ service.desc|linebreaksbr }}  <!-- Display formatted description -->
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center">No services available</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+      </div>
     </div>
-</div>
-{% endblock %} 
+  </div>
+
+</main>
+<!--end main content-->
+
+{% endblock %}

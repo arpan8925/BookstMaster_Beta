@@ -1,0 +1,316 @@
+{% extends 'user_dashboard/base.html' %}
+{% load static %}
+{% block content %}
+
+
+<!--start main content-->
+<main class="page-content">
+
+    <div class="row g-3">
+        <div class="col-auto">
+            <div class="position-relative">
+                <input class="form-control px-5" type="search" placeholder="Search Available Services">
+                <span
+                    class="material-symbols-outlined position-absolute ms-3 translate-middle-y start-0 top-50 fs-5">search</span>
+            </div>
+        </div>
+        <div class="col-auto flex-grow-1 overflow-auto">
+            <div class="btn-group position-static">
+                <div class="btn-group position-static">
+                    <button type="button" class="btn border btn-light px-4">
+                        All
+                    </button>
+                    <button type="button" class="btn border btn-outline-secondary px-4">
+                        Pending
+                    </button>
+                    <button type="button" class="btn border btn-outline-secondary px-4">
+                        In Progress
+                    </button>
+                    <button type="button" class="btn border btn-outline-secondary px-4">
+                        Completed
+                    </button>
+                    <button type="button" class="btn border btn-outline-secondary px-4">
+                        Partial
+                    </button>
+                    <button type="button" class="btn border btn-outline-secondary px-4">
+                        Processing
+                    </button>
+                    <button type="button" class="btn border btn-outline-secondary px-4">
+                        Canceled
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div><!--end row-->
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="customer-table">
+                <div class="table-responsive white-space-nowrap">
+                    <table class="table align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th></th>
+                                <th>Order ID</th>
+                                <th>Date</th>
+                                <th>Link</th>
+                                <th>Charge</th>
+                                <th>Start count</th>
+                                <th>Quantity</th>
+                                <th>Service</th>
+                                <th>Status</th>
+                                <th>Remains</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-success px-3 status">Completed</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-secondary px-3 status">Pending</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-warning px-3 status">In Progress</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-light px-3 status">Partial</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-info px-3 status">Processing</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-danger px-3 status">Canceled</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-success px-3 status">Completed</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-secondary px-3 status">Pending</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-warning px-3 status">In Progress</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-light px-3 status">Partial</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-info px-3 status">Processing</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox">
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name fw-bold">2647</p>
+                                </td>
+                                <td>
+                                    <p class="mb-0 customer-name">2025-02-13</p>
+                                </td>
+                                <td>https://www.facebook.com/profile.php?id=61572469660490</td>
+                                <td>$0.3450</td>
+                                <td>50</td>
+                                <td>1000</td>
+                                <td>Instagram followers fast 100k day</td>
+                                <td> <!-- Changed here -->
+                                    <button type="button" class="btn btn-danger px-3 status">Canceled</button>
+                                </td>
+                                <td>500</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+<!--end main content-->
+
+{% endblock %}

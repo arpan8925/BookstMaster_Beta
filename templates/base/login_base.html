@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{% endblock %}</title>
+
+    <!--plugins-->
+    <link href="{% static 'css/perfect-scrollbar.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/metisMenu.min.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/simplebar.css' %}" rel="stylesheet" />
+    <!--Styles-->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/icons.css' %}" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link href="{% static 'css/main.css' %}" rel="stylesheet" />
+    <link href="{% static 'css/dark-theme.css' %}" rel="stylesheet" />
+  </head>
+
+  <body>
+    {% block content %}{% endblock %}
+  </body>
+</html>

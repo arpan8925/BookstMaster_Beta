@@ -1,76 +1,89 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Ticket, TicketMessage, Transaction, Order
+from .models import Ticket, TicketMessage, Order
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.contrib.auth import update_session_auth_hash
 import secrets
-from managerdashboard.models import PaymentMethod, ServiceCategory, Service
+from managerdashboard.models import PaymentMethod, Transactions
 from decimal import Decimal
-import json
+from django.db import connection
+from django.http import JsonResponse
+from django.db import connection
+from .forms import AddFundsForm
+
+def calculate_fee(payment_method, amount):
+    if payment_method.fee_type == 'percentage':
+        return amount * (payment_method.fee_percentage / Decimal('100'))
+    elif payment_method.fee_type == 'fixed':
+        return payment_method.fee_fixed
+    else:
+        return (amount * (payment_method.fee_percentage / Decimal('100'))) + payment_method.fee_fixed
 
 @login_required
-def ticket_list(request):
-    tickets = Ticket.objects.filter(user=request.user).order_by('-created_at')
-    context = {
-        'active_tab': 'support',
-        'tickets': tickets,
-        'open_count': tickets.filter(status='open').count(),
-        'in_progress_count': tickets.filter(status='in_progress').count(),
-        'closed_count': tickets.filter(status='closed').count(),
-    }
-    return render(request, 'user_dashboard/tickets/ticket_list.html', context)
-
-@login_required
-def ticket_create(request):
-    context = {
-        'active_tab': 'support'
-    }
-    if request.method == 'POST':
-        subject = request.POST.get('subject')
-        message = request.POST.get('message')
-        priority = request.POST.get('priority')
+def search_services(request):
+    query = request.GET.get('q', '').lower()  # Get the search query from the request
+    if query:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT s.id, s.name, s.price, s.desc, s.min, s.max,
+                       c.id AS category_id, c.name AS category_name
+                FROM services s
+                INNER JOIN categories c ON s.cate_id = c.id
+                WHERE s.status = 1 AND LOWER(s.name) LIKE %s
+                ORDER BY c.name, s.name
+            """, [f"%{query}%"])
+            columns = [col[0] for col in cursor.description]
+            services = [dict(zip(columns, row)) for row in cursor.fetchall()]
         
-        if subject and message:
-            ticket = Ticket.objects.create(
-                user=request.user,
-                subject=subject,
-                message=message,
-                priority=priority
-            )
-            messages.success(request, 'Ticket created successfully!')
-            return redirect('ticket_detail', pk=ticket.pk)
-    return render(request, 'user_dashboard/tickets/ticket_create.html', context)
+        # Structure the result as JSON
+        return JsonResponse({'results': services})
+    return JsonResponse({'results': []})  # Return empty if no query is provided or no matches found
 
-@login_required
-def ticket_detail(request, pk):
-    ticket = get_object_or_404(Ticket, pk=pk, user=request.user)
-    
-    if request.method == 'POST':
-        message = request.POST.get('message')
-        if message:
-            TicketMessage.objects.create(
-                ticket=ticket,
-                user=request.user,
-                message=message
-            )
-            messages.success(request, 'Reply added successfully!')
-            return redirect('ticket_detail', pk=ticket.pk)
-    
-    return render(request, 'user_dashboard/tickets/ticket_detail.html', {
-        'ticket': ticket,
-        'replies': ticket.messages.all()
-    })
 
 @login_required
 def dashboard(request):
+    user = request.user
+    full_name = f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else user.username
+
+    # Fetch services and their categories from the database
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT s.id, s.name, s.price, s.desc, s.min, s.max,
+                   c.id AS category_id, c.name AS category_name
+            FROM services s
+            INNER JOIN categories c ON s.cate_id = c.id
+            WHERE s.status = 1 
+            ORDER BY c.name, s.name
+        """)
+        columns = [col[0] for col in cursor.description]
+        services = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    # Organize services by category
+    categories = {}
+    for service in services:
+        cat_id = service['category_id']
+        cat_name = service['category_name']
+        if cat_id not in categories:
+            categories[cat_id] = {
+                'name': cat_name,
+                'services': []
+            }
+        categories[cat_id]['services'].append(service)
+
     context = {
-        'active_tab': 'dashboard'
+        'active_tab': 'dashboard',
+        'categories': categories,  # Pass categories with their services
+        'user_name': full_name,
+        'user_level': user.get_level_display(),
+        'user_balance': user.balance,
+        'user_spent': user.spent,
     }
-    return render(request, 'user_dashboard/dashboard.html', context)
+    
+    return render(request, 'user_dashboard/index.html', context)
 
 @login_required
 def profile(request):
@@ -124,19 +137,7 @@ def profile_more(request):
         
     return redirect('user_profile')
 
-@login_required
-def security_settings(request):
-    context = {
-        'active_tab': 'security'
-    }
-    return render(request, 'user_dashboard/security.html', context)
 
-@login_required
-def posts(request):
-    context = {
-        'active_tab': 'posts'
-    }
-    return render(request, 'user_dashboard/posts.html', context)
 
 @login_required
 def favorites(request):
@@ -167,97 +168,9 @@ def preferences(request):
     return render(request, 'user_dashboard/preferences.html', context)
 
 @login_required
-def new_order(request):
-    if request.method == 'POST':
-        try:
-            # Get form data
-            category_id = request.POST.get('category')
-            service_id = request.POST.get('service')
-            link = request.POST.get('link')
-            quantity = int(request.POST.get('quantity', 0))
-            
-            # Add debug logging
-            print(f"Creating order with service_id: {service_id}, quantity: {quantity}")
-            
-            # Validate service
-            try:
-                service = Service.objects.get(id=service_id, status='active')
-            except Service.DoesNotExist:
-                messages.error(request, 'Invalid service selected')
-                return redirect('new_order')
-            except Exception as e:
-                messages.error(request, f'Error finding service: {str(e)}')
-                return redirect('new_order')
-            
-            # Calculate total price
-            try:
-                price_per_1000 = service.rate
-                total_price = (Decimal(quantity) / 1000) * price_per_1000
-            except Exception as e:
-                messages.error(request, f'Error calculating price: {str(e)}')
-                return redirect('new_order')
-            
-            # Check if user has sufficient balance
-            if request.user.balance < total_price:
-                messages.error(request, 'Insufficient balance')
-                return redirect('new_order')
-            
-            try:
-                # Create order with explicit table name
-                order = Order.objects.create(
-                    user=request.user,
-                    service=service,
-                    link=link,
-                    quantity=quantity,
-                    price=total_price,
-                    status='pending'
-                )
-                print(f"Order created successfully with ID: {order.id}")
-                
-                # Deduct balance from user
-                request.user.balance -= total_price
-                request.user.save()
-                
-                messages.success(request, f'Order #{order.id} has been placed successfully!')
-                return redirect('order_log')
-                
-            except Exception as e:
-                print(f"Error creating order: {str(e)}")
-                messages.error(request, f'Database error: {str(e)}')
-                return redirect('new_order')
-            
-        except Exception as e:
-            print(f"Unexpected error in new_order view: {str(e)}")
-            messages.error(request, f'Error processing order: {str(e)}')
-            return redirect('new_order')
-    
-    # Get all active categories and services
-    categories = ServiceCategory.objects.all()
-    services = Service.objects.filter(status='active')
-    
-    # Prepare services data for JavaScript
-    services_data = {}
-    for service in services:
-        if service.category_id not in services_data:
-            services_data[service.category_id] = []
-        services_data[service.category_id].append({
-            'id': service.id,
-            'name': service.name,
-            'price_per_1000': float(service.rate),
-            'min_quantity': service.min_order,
-            'max_quantity': service.max_order,
-            'description': service.description
-        })
-    
-    context = {
-        'active_tab': 'order',
-        'categories': categories,
-        'services_data': json.dumps(services_data)
-    }
-    return render(request, 'user_dashboard/order/new_order.html', context)
-
-@login_required
 def order_log(request):
+    user = request.user
+    full_name = f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else user.username 
     # Get filter parameters
     status = request.GET.get('status')
     date_from = request.GET.get('date_from')
@@ -331,24 +244,42 @@ def order_log(request):
         'filter_status': status,
         'filter_date_from': date_from,
         'filter_date_to': date_to,
-        'filter_search': search
+        'filter_search': search,
+        'user_level': user.get_level_display(),
+        'user_balance': user.balance,
+        'user_name': full_name,
     }
-    return render(request, 'user_dashboard/order/order_log.html', context)
+    return render(request, 'user_dashboard/orders.html', context)
 
 @login_required
-def services(request):
-    services = [{
-        'id': '26192',
-        'name': 'Facebook page like + Followers Non Drop All Type of page',
-        'rate': '0.28',
-        'min_max': '100 / 50000',
-        'details': 'Details'
-    }]
+def services_view(request):
+    user = request.user
+    full_name = f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else user.username 
+
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT id, name, price, desc, min, max, add_type AS category_id 
+            FROM services
+            WHERE status = 1 
+            ORDER BY add_type, id
+        """)
+        columns = [col[0] for col in cursor.description]
+        services = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    # Multiply the price by 100 for each service
+    for service in services:
+        service['price'] = service['price'] * 1000
+
     context = {
         'active_tab': 'services',
-        'services': services
+        'services': services,  # For general listing
+        'user_level': user.get_level_display(),
+        'user_balance': user.balance,
+        'user_name': full_name,
     }
-    return render(request, 'user_dashboard/services.html', context)
+
+    return render(request, 'user_dashboard/Services.html', context)
+
 
 @login_required
 def api_documentation(request):
@@ -365,19 +296,62 @@ def api_documentation(request):
 
 @login_required
 def add_funds(request):
-    # Get all active payment methods
+    user = request.user
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('name')
-    
-    context = {
-        'active_tab': 'add_funds',
-        'payment_methods': payment_methods
-    }
-    return render(request, 'user_dashboard/add_funds.html', context)
+
+    form = AddFundsForm(request.POST or None, payment_methods=payment_methods)
+
+    if request.method == 'POST' and form.is_valid():
+        payment_method = form.cleaned_data['payment_method']
+        amount = form.cleaned_data['amount']
+        terms = form.cleaned_data['terms']
+
+        if not terms:
+            form.add_error('terms', 'You must agree to the Terms & Conditions.')
+            return render(request, 'user_dashboard/AddFund.html', {'form': form, 'payment_methods': payment_methods})
+
+        fee = calculate_fee(payment_method, amount)
+        total_amount = amount + fee
+
+        # Handle manual payment processing
+        if payment_method.type == 'manual':
+            transaction = Transactions.objects.create(
+                uid=user,  # Pass the User instance here
+                amount=amount,
+                fee=fee,
+                total_amount=total_amount,
+                payment_method=payment_method,
+                status='waiting',
+                description=f"Manual payment via {payment_method.name}"
+            )
+            messages.success(request, f'Transaction initiated successfully. Your transaction ID is {transaction.transaction_id}. Please follow the instructions to complete the payment.')
+            return redirect('transaction_detail', transaction_id=transaction.transaction_id)
+
+        # Handle automatic payment processing
+        else:
+            transaction = Transactions.objects.create(
+                uid=user,  # Pass the User instance here
+                amount=amount,
+                fee=fee,
+                total_amount=total_amount,
+                payment_method=payment_method,
+                status='waiting',
+                description=f"Payment via {payment_method.name}"
+            )
+            messages.success(request, f'Transaction initiated successfully. Your transaction ID is {transaction.transaction_id}')
+            return redirect('transaction_detail', transaction_id=transaction.transaction_id)
+
+    return render(request, 'user_dashboard/AddFund.html', {
+        'form': form,
+        'payment_methods': payment_methods,
+        'user': user,
+        'user_balance': user.balance
+    })
 
 @login_required
 def transaction_logs(request):
     # Get all transactions for the current user, ordered by creation date
-    transactions = Transaction.objects.filter(user=request.user).order_by('-created')
+    transactions = Transactions.objects.filter(user=request.user).order_by('-created')
     
     # Add pagination
     paginator = Paginator(transactions, 10)  # Show 10 transactions per page
@@ -387,7 +361,6 @@ def transaction_logs(request):
     context = {
         'active_tab': 'transactions',
         'transactions': transactions_page,
-        # Add summary statistics
         'total_transactions': transactions.count(),
         'total_amount': sum(t.total_amount for t in transactions),
         'completed_transactions': transactions.filter(status='completed').count(),
@@ -523,7 +496,7 @@ def process_payment(request, method_id):
                 fee = (amount * (method.fee_percentage / Decimal('100'))) + method.fee_fixed
             
             # Create transaction with description
-            transaction = Transaction.objects.create(
+            transaction = Transactions.objects.create(
                 user=request.user,
                 amount=amount,
                 fee=fee,
@@ -552,11 +525,58 @@ def process_payment(request, method_id):
 
 @login_required
 def transaction_detail(request, transaction_id):
-    """View for showing transaction details"""
-    transaction = get_object_or_404(Transaction, transaction_id=transaction_id, user=request.user)
-    
+    transaction = get_object_or_404(Transactions, transaction_id=transaction_id, uid=request.user.uid)
+    return render(request, 'user_dashboard/transaction_detail.html', {'transaction': transaction})
+
+@login_required
+def ticket_list(request):
+    tickets = Ticket.objects.filter(user=request.user).order_by('-created_at')
     context = {
-        'active_tab': 'transactions',
-        'transaction': transaction,
+        'active_tab': 'support',
+        'tickets': tickets,
+        'open_count': tickets.filter(status='open').count(),
+        'in_progress_count': tickets.filter(status='in_progress').count(),
+        'closed_count': tickets.filter(status='closed').count(),
     }
-    return render(request, 'user_dashboard/transaction_detail.html', context)
+    return render(request, 'user_dashboard/tickets/ticket_list.html', context)
+
+@login_required
+def ticket_create(request):
+    context = {
+        'active_tab': 'support'
+    }
+    if request.method == 'POST':
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+        priority = request.POST.get('priority')
+        
+        if subject and message:
+            ticket = Ticket.objects.create(
+                user=request.user,
+                subject=subject,
+                message=message,
+                priority=priority
+            )
+            messages.success(request, 'Ticket created successfully!')
+            return redirect('ticket_detail', pk=ticket.pk)
+    return render(request, 'user_dashboard/tickets/ticket_create.html', context)
+
+@login_required
+def ticket_detail(request, pk):
+    ticket = get_object_or_404(Ticket, pk=pk, user=request.user)
+    
+    if request.method == 'POST':
+        message = request.POST.get('message')
+        if message:
+            TicketMessage.objects.create(
+                ticket=ticket,
+                user=request.user,
+                message=message
+            )
+            messages.success(request, 'Reply added successfully!')
+            return redirect('ticket_detail', pk=ticket.pk)
+    
+    return render(request, 'user_dashboard/tickets/ticket_detail.html', {
+        'ticket': ticket,
+        'replies': ticket.messages.all()
+    })

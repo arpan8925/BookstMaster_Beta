@@ -161,9 +161,18 @@
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <a class="dropdown-item" href="#">
+                                        <button class="dropdown-item" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#orderDetailsModal"
+                                                data-order-id="{{ order.id }}"
+                                                data-order-service="{{ order.service.name }}"
+                                                data-order-link="{{ order.link }}"
+                                                data-order-quantity="{{ order.quantity }}"
+                                                data-order-price="{{ order.price }}"
+                                                data-order-created="{{ order.created|date:'Y-m-d H:i:s' }}"
+                                                data-order-status="{{ order.status }}">
                                             <i class="bi bi-eye me-2"></i> View Details
-                                        </a>
+                                        </button>
                                     </li>
                                     {% if order.status == 'pending' %}
                                     <li>
@@ -278,4 +287,50 @@
     background-color: #e9ecef;
 }
 </style>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderDetailsModalLabel">Order Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Order ID:</strong> <span id="modalOrderId"></span></p>
+                <p><strong>Service:</strong> <span id="modalOrderService"></span></p>
+                <p><strong>Link:</strong> <a href="#" id="modalOrderLink" target="_blank"></a></p>
+                <p><strong>Quantity:</strong> <span id="modalOrderQuantity"></span></p>
+                <p><strong>Price:</strong> $<span id="modalOrderPrice"></span></p>
+                <p><strong>Created:</strong> <span id="modalOrderCreated"></span></p>
+                <p><strong>Status:</strong> <span id="modalOrderStatus"></span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const orderDetailsModal = document.getElementById('orderDetailsModal');
+    orderDetailsModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const orderId = button.getAttribute('data-order-id');
+        const orderService = button.getAttribute('data-order-service');
+        const orderLink = button.getAttribute('data-order-link');
+        const orderQuantity = button.getAttribute('data-order-quantity');
+        const orderPrice = button.getAttribute('data-order-price');
+        const orderCreated = button.getAttribute('data-order-created');
+        const orderStatus = button.getAttribute('data-order-status');
+
+        document.getElementById('modalOrderId').textContent = orderId;
+        document.getElementById('modalOrderService').textContent = orderService;
+        document.getElementById('modalOrderLink').textContent = orderLink;
+        document.getElementById('modalOrderLink').href = orderLink;
+        document.getElementById('modalOrderQuantity').textContent = orderQuantity;
+        document.getElementById('modalOrderPrice').textContent = orderPrice;
+        document.getElementById('modalOrderCreated').textContent = orderCreated;
+        document.getElementById('modalOrderStatus').textContent = orderStatus;
+    });
+});
+</script>
 {% endblock %} 

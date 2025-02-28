@@ -1,13 +1,8 @@
 from django.shortcuts import render, get_object_or_404
-
 from django.contrib.auth.decorators import permission_required, login_required
-
 from django.db.models import Count, Sum
-
 from authentication.models import User
-
-from user_dashboard.models import Ticket, TicketMessage, Transaction, Order  # Import the existing Order model
-
+from user_dashboard.models import Ticket, TicketMessage, Order  # Import the existing Order model
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -18,7 +13,6 @@ from django.core.mail import send_mail as django_send_mail
 from django.conf import settings
 from decimal import Decimal, InvalidOperation
 from django.db import transaction
-from django.db import transaction as db_transaction
 from django.views.decorators.http import require_POST
 from .models import (
     Provider, 
@@ -26,7 +20,8 @@ from .models import (
     Service,
     ServiceCategory,
     ServiceUpdate,
-    PaymentMethod
+    PaymentMethod,
+    Transactions
 )
 
 import requests
@@ -40,20 +35,12 @@ logger = logging.getLogger(__name__)
 
 
 @permission_required('authentication.is_manager', login_url='manager_login')
-
 def manager_dashboard(request):
-
     # Get statistics
-
     total_users = User.objects.count()
-
     total_tickets = Ticket.objects.count()
-
     total_orders = 197  # Replace with actual order count
-
-    total_revenue = 340282346638528  # Replace with actual revenue calculation
-
-    
+    total_revenue = 340282346638528  # Replace with actual revenue calculation    
 
     context = {
 
@@ -196,15 +183,10 @@ def orders(request):
 @permission_required('authentication.is_manager', login_url='manager_login')
 
 def services(request):
-
     # Get search query and filters
-
     search_query = request.GET.get('search', '')
-
     category_filter = request.GET.get('category', '')
-
     provider_filter = request.GET.get('provider', '')
-
     status_filter = request.GET.get('status', '')
 
     
@@ -810,7 +792,7 @@ def payments(request):
     date_filter = request.GET.get('date', 'all')
     
     # Base queryset with related user info
-    transactions = Transaction.objects.select_related('user').all()
+    transactions = Transactions.objects.select_related('user').all()
     
     # Apply search based on type
     if search_query:
@@ -896,9 +878,9 @@ def approve_transaction(request, transaction_id):
 
         try:
 
-            with db_transaction.atomic():
+            with transaction.atomic():
 
-                txn = Transaction.objects.select_for_update().get(id=transaction_id)
+                txn = Transactions.objects.select_for_update().get(id=transaction_id)
                 
                 if txn.status != 'waiting':
 
@@ -932,7 +914,7 @@ def approve_transaction(request, transaction_id):
 
                 })
                 
-        except Transaction.DoesNotExist:
+        except Transactions.DoesNotExist:
 
             return JsonResponse({
 
@@ -972,7 +954,7 @@ def cancel_transaction(request, transaction_id):
 
         try:
 
-            transaction = Transaction.objects.get(id=transaction_id)
+            transaction = Transactions.objects.get(id=transaction_id)
 
             
 
@@ -1006,7 +988,7 @@ def cancel_transaction(request, transaction_id):
 
             
 
-        except Transaction.DoesNotExist:
+        except Transactions.DoesNotExist:
 
             return JsonResponse({'error': 'Transaction not found'}, status=404)
 
@@ -1145,7 +1127,7 @@ def add_funds(request):
                 user.save()
 
                 # Create transaction record
-                Transaction.objects.create(
+                Transactions.objects.create(
                     user=user,
                     amount=amount,
                     type='credit',
@@ -2065,7 +2047,7 @@ def edit_payment_method(request, method_id):
 @permission_required('authentication.is_manager', login_url='manager_login')
 def view_transaction(request, transaction_id):
     try:
-        transaction = Transaction.objects.select_related('user').get(id=transaction_id)
+        transaction = Transactions.objects.select_related('user').get(id=transaction_id)
         data = {
             'id': transaction.id,
             'user': transaction.user.email,
@@ -2079,7 +2061,7 @@ def view_transaction(request, transaction_id):
             'fee': str(transaction.fee) if hasattr(transaction, 'fee') else '0.00'
         }
         return JsonResponse(data)
-    except Transaction.DoesNotExist:
+    except Transactions.DoesNotExist:
         return JsonResponse({'error': 'Transaction not found'}, status=404)
     except Exception as e:
         print(f"Error in view_transaction: {str(e)}")  # For debugging
@@ -2090,7 +2072,7 @@ def approve_transaction(request, transaction_id):
     if request.method == 'POST':
         try:
             with transaction.atomic():  # Use Django's transaction.atomic() for atomic operations
-                txn = Transaction.objects.select_for_update().get(id=transaction_id)
+                txn = Transactions.objects.select_for_update().get(id=transaction_id)
                 
                 if txn.status != 'waiting':
                     return JsonResponse({
@@ -2112,7 +2094,7 @@ def approve_transaction(request, transaction_id):
                     'message': 'Transaction approved successfully'
                 })
                 
-        except Transaction.DoesNotExist:
+        except Transactions.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Transaction not found'
@@ -2133,7 +2115,7 @@ def approve_transaction(request, transaction_id):
 def cancel_transaction(request, transaction_id):
     if request.method == 'POST':
         try:
-            txn = Transaction.objects.get(id=transaction_id)
+            txn = Transactions.objects.get(id=transaction_id)
             
             if txn.status != 'waiting':
                 return JsonResponse({
@@ -2149,7 +2131,7 @@ def cancel_transaction(request, transaction_id):
                 'message': 'Transaction cancelled successfully'
             })
             
-        except Transaction.DoesNotExist:
+        except Transactions.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Transaction not found'
@@ -2166,7 +2148,7 @@ def export_transactions(request):
     from django.http import HttpResponse
     
     # Get filtered transactions
-    transactions = Transaction.objects.select_related('user').all()
+    transactions = Transactions.objects.select_related('user').all()
     
     # Apply filters (same as in payments view)
     # ... (copy filter logic from payments view)
