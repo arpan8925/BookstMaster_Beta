@@ -6,7 +6,8 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.utils import timezone  # Use the correct timezone module
 
 # Create your models here.
-
+def generate_unique_id():
+    return uuid.uuid4().hex
 
 class Provider(models.Model):
     name = models.CharField(max_length=200)
@@ -54,8 +55,8 @@ class ServiceCategory(models.Model):
     ]
     # Auto-generated fields
     id = models.AutoField(primary_key=True)  # Auto-incrementing ID
-    ids = models.UUIDField(
-        default=uuid.uuid4, editable=False, unique=True
+    ids = models.CharField(
+        max_length=32, default=generate_unique_id, editable=False, unique=True
     )  # Auto-generated UUID
     created = models.DateTimeField(auto_now_add=True)  # Auto-set on creation
     changed = models.DateTimeField(auto_now=True)  # Auto-updated on save
@@ -94,7 +95,7 @@ class Service(models.Model):
     # Auto-generated fields
     id = models.AutoField(primary_key=True)
     ids = models.CharField(
-        max_length=32, default=uuid.uuid4().hex, editable=False, unique=True
+        max_length=32, default=generate_unique_id, editable=False, unique=True
     )
     created = models.DateTimeField(auto_now_add=True)
     changed = models.DateTimeField(auto_now=True)
@@ -167,7 +168,9 @@ class PaymentMethod(models.Model):
     FEE_TYPE_CHOICES = [("percentage", "Percentage"), ("fixed", "Fixed Amount")]
 
     id = models.AutoField(primary_key=True)
-    ids = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    ids = models.CharField(
+        max_length=32, default=generate_unique_id, editable=False, unique=True
+    )
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     desc = CKEditor5Field('Text', config_name='extends', blank=True, null=True)
@@ -229,3 +232,118 @@ class Transactions(models.Model):
 
     def __str__(self):
         return f"{self.transaction_id} - {self.uid} - ${self.amount}"
+    
+class Order(models.Model):
+    TYPE_CHOICES = [
+        ('direct', 'direct'),
+        ('api', 'api'),
+    ]
+    
+    SUB_STATUS_CHOICES = [
+        ('Active', 'Active'),
+        ('Paused', 'Paused'),
+        ('Completed', 'Completed'),
+        ('Expired', 'Expired'),
+        ('Canceled', 'Canceled'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('completed', 'completed'),
+        ('processing', 'processing'),
+        ('inprogress', 'inprogress'),
+        ('pending', 'pending'),
+        ('partial', 'partial'),
+        ('refunded', 'refunded'),
+        ('canceled', 'canceled'),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    ids = models.CharField(
+        max_length=32, default=generate_unique_id, editable=False, unique=True
+    )
+    type = models.CharField(
+        max_length=10,
+        choices=TYPE_CHOICES,
+        default='direct'
+    )
+    cate_id = models.ForeignKey(
+        'ServiceCategory',
+        on_delete=models.PROTECT,
+        db_column='cate_id',
+        related_name='orders',
+        null=True,
+        blank=True
+    )
+    service_id = models.ForeignKey(
+        'Service',
+        on_delete=models.SET_NULL,
+        db_column='service_id',
+        to_field='ids',
+        null=True,
+        blank=True
+    )
+    main_order_id = models.IntegerField(null=True, blank=True)
+    service_type = models.CharField(
+        max_length=50,
+        default='default',
+        blank=True,
+        null=True
+    )
+    api_provider_id = models.IntegerField(null=True, blank=True)
+    api_service_id = models.CharField(max_length=200, null=True, blank=True)
+    api_order_id = models.IntegerField(default=0, null=True, blank=True)
+    uid = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        to_field='uid',
+        db_column='uid',
+        null=True,
+        blank=True
+    )
+    link = models.CharField(max_length=191, blank=True, null=True)
+    quantity = models.IntegerField(null=True, blank=True)
+    usernames = models.TextField(blank=True, null=True)
+    username = models.TextField(blank=True, null=True)
+    hashtags = models.TextField(blank=True, null=True)
+    hashtag = models.TextField(blank=True, null=True)
+    media = models.TextField(blank=True, null=True)
+    comments = models.TextField(blank=True, null=True)
+    sub_posts = models.IntegerField(null=True, blank=True)
+    sub_min = models.IntegerField(null=True, blank=True)
+    sub_max = models.IntegerField(null=True, blank=True)
+    sub_delay = models.IntegerField(null=True, blank=True)
+    sub_expiry = models.TextField(blank=True, null=True)
+    sub_response_orders = models.TextField(blank=True, null=True)
+    sub_response_posts = models.TextField(blank=True, null=True)
+    sub_status = models.CharField(
+        max_length=10,
+        choices=SUB_STATUS_CHOICES,
+        null=True,
+        blank=True
+    )
+    charge = models.DecimalField(
+        max_digits=15,
+        decimal_places=4,
+        null=True,
+        blank=True
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    start_counter = models.CharField(max_length=191, default='0')
+    remains = models.CharField(max_length=191, default='0')
+    is_drip_feed = models.BooleanField(default=False)
+    runs = models.IntegerField(default=0)
+    interval = models.IntegerField(default=0)
+    dripfeed_quantity = models.CharField(max_length=191, default='0')
+    note = models.TextField(blank=True, null=True)
+    changed = models.DateTimeField(auto_now=True, null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    class Meta:
+        db_table = 'orders'
+
+
+

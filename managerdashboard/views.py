@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import permission_required, login_required
 from django.db.models import Count, Sum
 from authentication.models import User
-from user_dashboard.models import Ticket, TicketMessage, Order  # Import the existing Order model
+from user_dashboard.models import Ticket, TicketMessage  
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -63,16 +63,11 @@ def manager_dashboard(request):
 @permission_required('authentication.is_manager', login_url='manager_login')
 
 def orders(request):
-
     # Get search query and filters
 
     search_query = request.GET.get('search', '')
-
     status_filter = request.GET.get('status', '')
-
-    date_filter = request.GET.get('date', 'today')
-
-    
+    date_filter = request.GET.get('date', 'today')    
 
     # Base queryset with related user and service
 
@@ -870,78 +865,44 @@ def payments(request):
 
 
 
-@permission_required('authentication.is_manager', login_url='manager_login')
-
+@permission_required('authentication.is_manager', login_url='manager_login') #Using this already
 def approve_transaction(request, transaction_id):
-
     if request.method == 'POST':
-
         try:
-
             with transaction.atomic():
-
-                txn = Transactions.objects.select_for_update().get(id=transaction_id)
-                
+                txn = Transactions.objects.select_for_update().get(id=transaction_id)                
                 if txn.status != 'waiting':
-
                     return JsonResponse({
-
                         'status': 'error',
-
                         'message': 'Transaction cannot be approved'
-
-                    }, status=400)
-                
+                    }, status=400)                
                 # Update transaction status
-
                 txn.status = 'completed'
-
-                txn.save()
-                
+                txn.save()                
                 # Add amount to user's balance
-
-                user = txn.user
-
+                user = txn.uid
                 user.balance = user.balance + txn.amount
-
-                user.save()
-                
+                user.save()                
                 return JsonResponse({
-
                     'status': 'success',
-
                     'message': 'Transaction approved successfully'
-
                 })
                 
         except Transactions.DoesNotExist:
-
             return JsonResponse({
-
                 'status': 'error',
-
                 'message': 'Transaction not found'
-
             }, status=404)
 
         except Exception as e:
-
             return JsonResponse({
-
                 'status': 'error',
-
                 'message': str(e)
-
-            }, status=400)
-
-            
+            }, status=400)            
 
     return JsonResponse({
-
         'status': 'error',
-
         'message': 'Invalid request method'
-
     }, status=405)
 
 

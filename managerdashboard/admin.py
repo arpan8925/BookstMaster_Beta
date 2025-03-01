@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ServiceCategory, Service, PaymentMethod, Transactions
+from .models import ServiceCategory, Service, PaymentMethod, Transactions, Order
 from django import forms
 from django.utils.html import format_html
 
@@ -136,3 +136,55 @@ class TransactionsAdmin(admin.ModelAdmin):
     mark_as_completed.short_description = 'Mark selected transactions as completed'
 
 admin.site.register(Transactions, TransactionsAdmin)
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = (
+        'ids', 'uid', 'status', 'sub_status', 'type', 
+        'created', 'charge', 'service_id', 'cate_id'
+    )
+    list_filter = (
+        'status', 'sub_status', 'type', 'cate_id', 
+        'created', 'changed'
+    )
+    search_fields = (
+        'ids', 'uid__uid', 'link', 'note', 
+        'service_id__name', 'cate_id__name'
+    )
+    raw_id_fields = ('uid', 'service_id', 'cate_id')
+    readonly_fields = ('ids', 'created', 'changed')
+    date_hierarchy = 'created'
+    fieldsets = (
+        ('Order Information', {
+            'fields': (
+                'ids', 'type', 'status', 'sub_status', 
+                'charge', 'created', 'changed'
+            )
+        }),
+        ('Service Details', {
+            'fields': (
+                'cate_id', 'service_id', 'link', 'quantity',
+                'start_counter', 'remains', 'note'
+            )
+        }),
+        ('User & API Information', {
+            'fields': (
+                'uid', 'api_provider_id', 'api_service_id',
+                'api_order_id'
+            )
+        }),
+        ('Advanced Options', {
+            'classes': ('collapse',),
+            'fields': (
+                'main_order_id', 'service_type', 'is_drip_feed',
+                'runs', 'interval', 'dripfeed_quantity'
+            )
+        }),
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+        if obj:  # When editing an existing object
+            return readonly_fields + ('uid', 'type', 'created')
+        return readonly_fields

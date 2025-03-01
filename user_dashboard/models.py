@@ -1,14 +1,9 @@
 from django.db import models
-from django.conf import settings
 from authentication.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
-from decimal import Decimal
-import uuid
-
-
 
 
 # Create your models here.
@@ -99,33 +94,5 @@ class TicketMessage(models.Model):
 
     def __str__(self):
         return f"Message for Ticket #{self.ticket.id}"
-
-
-
-class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('processing', 'Processing'),
-        ('completed', 'Completed'),
-        ('failed', 'Failed'),
-        ('canceled', 'Canceled'),
-        ('refunded', 'Refunded')
-    ]
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
-    service = models.ForeignKey('managerdashboard.Service', on_delete=models.CASCADE)
-    link = models.URLField()
-    quantity = models.IntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        ordering = ['-created']
-        db_table = 'orders'
-
-    def __str__(self):
-        return f"Order #{self.id} - {self.user.username}"
 
 
